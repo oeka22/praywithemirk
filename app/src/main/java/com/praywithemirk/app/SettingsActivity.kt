@@ -35,6 +35,8 @@ class SettingsActivity : Activity() {
 
     private val reqAdhan = 11
     private val reqPrayerBase = 20
+    private val reqMicRecord = 15
+    private val reqMicClap = 16
     private val reqLocation = 13
 
     private val goldTint get() = ColorStateList(
@@ -108,6 +110,14 @@ class SettingsActivity : Activity() {
             AppTheme.entries.forEachIndexed { idx, t -> grid.addView(themeTile(t), LinearLayout.LayoutParams(0, -2, 1f).apply { if (idx > 0) leftMargin = dp(8) }) }
             addView(grid)
             addView(text(prefs.theme.title[l], 14f, C.gold, Fonts.medium, Gravity.CENTER), lp(top = dp(10)))
+            addView(label(S.styleLabel[l]), lp(top = dp(14)))
+            val st = AppStyle.entries
+            for (rowIdx in 0..1) {
+                addView(segmented(st.subList(rowIdx * 2, rowIdx * 2 + 2).map { it.title[l] },
+                    st.indexOf(prefs.style) - rowIdx * 2) { idx ->
+                    prefs.style = st[rowIdx * 2 + idx]; recreate()
+                }, lp(top = dp(6)))
+            }
         }, lp(top = dp(8)))
 
         // ---------------- Standort
@@ -187,33 +197,113 @@ class SettingsActivity : Activity() {
             addView(stepper(S.reminderBefore[l], prefs.reminderMinutes, 0, 60, 5) {
                 prefs.reminderMinutes = it; changed()
             }, lp(top = dp(14)))
+
+            addView(switchRow(S.clapSetting[l], prefs.clapToStop) { on ->
+                if (on && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), reqMicClap)
+                } else prefs.clapToStop = on
+            }, lp(top = dp(10)))
+            addView(text(S.clapInfo[l], 12f, C.muted, Fonts.light))
+        }, lp(top = dp(8)))
+
+        // ---------------- Eigene Aufnahmen
+        section(S.recordings[l])
+        col.addView(card().apply {
+            addView(text(S.recordingsInfo[l], 13f, C.muted, Fonts.light))
+            val recs = Recordings.list(this@SettingsActivity)
+            if (recs.isEmpty()) addView(text(S.noRecordings[l], 14f, C.cream, Fonts.light), lp(top = dp(10)))
+            recs.forEach { r ->
+                val row = LinearLayout(this@SettingsActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+                    setPadding(0, dp(8), 0, dp(4))
+                }
+                row.addView(text("🎙  " + r.name, 15f, C.cream, Fonts.regular).apply { maxLines = 2 }, LinearLayout.LayoutParams(0, -2, 1f))
+                row.addView(pill("▶") { preview(r.uri) }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(6) })
+                row.addView(pill("■") { preview(null) }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(6) })
+                row.addView(pill("🗑") {
+                    AlertDialog.Builder(this@SettingsActivity, dialogStyle())
+                        .setTitle(S.deleteRecording[l])
+                        .setMessage(r.name)
+                        .setNegativeButton(S.cancel[l], null)
+                        .setPositiveButton(S.delete[l]) { _, _ ->
+                            preview(null); Recordings.delete(this@SettingsActivity, r); render()
+                        }.show()
+                }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(6) })
+                addView(row)
+            }
+            addView(pill("●  " + S.newRecording[l], filled = true) { recordDialog(null) },
+                lp(LinearLayout.LayoutParams.WRAP_CONTENT, top = dp(12)))
         }, lp(top = dp(8)))
 
         // ---------------- Quellen
         section(S.sources[l])
         col.addView(card().apply {
             addView(text(S.sourcesInfo[l], 13f, C.muted, Fonts.light))
-            for (src in Src.entries) {
-                val count = sourceCount(src)
+            fun switchFor(on: Boolean, change: (Boolean) -> Unit) = Switch(this@SettingsActivity).apply {
+                isChecked = on
+                thumbTintList = goldTint
+                trackTintList = ColorStateList(
+                    arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+                    intArrayOf(alpha(C.gold, 128), alpha(C.faint, 96))
+                )
+                setOnCheckedChangeListener { _: CompoundButton, c: Boolean -> change(c) }
+            }
+            fun confirmDelete(title: String, onYes: () -> Unit) {
+                AlertDialog.Builder(this@SettingsActivity, dialogStyle())
+                    .setTitle(S.deleteSource[l]).setMessage(title + "\n\n" + S.deleteSourceInfo[l])
+                    .setNegativeButton(S.cancel[l], null)
+                    .setPositiveButton(S.delete[l]) { _, _ -> onYes() }.show()
+            }
+            for (src in Src.entries.filter { !prefs.sourceDeleted(it) }) {
                 val row = LinearLayout(this@SettingsActivity).apply {
                     orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
                     setPadding(0, dp(10), 0, dp(4))
                 }
                 val txt = LinearLayout(this@SettingsActivity).apply { orientation = LinearLayout.VERTICAL }
                 txt.addView(text(src.title[l], 15f, C.cream, Fonts.regular))
-                txt.addView(text(src.info[l] + " · " + S.itemsCount[l].format(count), 12f, C.muted, Fonts.light))
+                txt.addView(text(src.info[l] + " · " + S.itemsCount[l].format(sourceCount(src)), 12f, C.muted, Fonts.light))
                 row.addView(txt, LinearLayout.LayoutParams(0, -2, 1f))
-                row.addView(Switch(this@SettingsActivity).apply {
-                    isChecked = prefs.sourceEnabled(src)
-                    thumbTintList = goldTint
-                    trackTintList = ColorStateList(
-                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
-                        intArrayOf(alpha(C.gold, 128), alpha(C.faint, 96))
-                    )
-                    setOnCheckedChangeListener { _: CompoundButton, c: Boolean -> prefs.setSourceEnabled(src, c) }
+                row.addView(switchFor(prefs.sourceEnabled(src)) { prefs.setSourceEnabled(src, it) })
+                row.addView(text("🗑", 18f, C.muted, Fonts.regular, Gravity.CENTER).apply {
+                    setPadding(dp(10), dp(6), dp(4), dp(6))
+                    setOnClickListener { confirmDelete(src.title[l]) { prefs.setSourceDeleted(src, true); render() } }
                 })
                 addView(row)
             }
+            for (cs in CustomSources.list(this@SettingsActivity)) {
+                val row = LinearLayout(this@SettingsActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+                    setPadding(0, dp(10), 0, dp(4))
+                }
+                val txt = LinearLayout(this@SettingsActivity).apply { orientation = LinearLayout.VERTICAL }
+                txt.addView(text("🔗 " + cs.name, 15f, C.cream, Fonts.regular))
+                txt.addView(text(S.ownSource[l] + " · " + S.itemsCount[l].format(cs.count), 12f, C.muted, Fonts.light))
+                txt.addView(text(cs.url, 11f, C.faint, Fonts.light).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.MIDDLE })
+                txt.addView(text("↻ " + S.refresh[l], 12f, C.teal, Fonts.regular).apply {
+                    setPadding(0, dp(4), dp(8), dp(4))
+                    setOnClickListener {
+                        Toast.makeText(this@SettingsActivity, S.downloading[l], Toast.LENGTH_SHORT).show()
+                        CustomSources.refresh(this@SettingsActivity, cs.id) { n ->
+                            Toast.makeText(this@SettingsActivity,
+                                if (n > 0) S.sourceLoaded[l].format(n) else S.sourceFailed[l], Toast.LENGTH_SHORT).show()
+                            render()
+                        }
+                    }
+                })
+                row.addView(txt, LinearLayout.LayoutParams(0, -2, 1f))
+                row.addView(switchFor(cs.enabled) { CustomSources.setEnabled(this@SettingsActivity, cs.id, it) })
+                row.addView(text("🗑", 18f, C.muted, Fonts.regular, Gravity.CENTER).apply {
+                    setPadding(dp(10), dp(6), dp(4), dp(6))
+                    setOnClickListener { confirmDelete(cs.name) { CustomSources.delete(this@SettingsActivity, cs.id); render() } }
+                })
+                addView(row)
+            }
+            addView(pill("＋  " + S.addSource[l], filled = true) { addSourceDialog() },
+                lp(LinearLayout.LayoutParams.WRAP_CONTENT, top = dp(14)))
+            val deleted = Src.entries.count { prefs.sourceDeleted(it) }
+            if (deleted > 0) addView(pill("↺  " + S.restoreSources[l] + " ($deleted)") {
+                Src.entries.forEach { prefs.setSourceDeleted(it, false) }; render()
+            }, lp(LinearLayout.LayoutParams.WRAP_CONTENT, top = dp(8)))
         }, lp(top = dp(8)))
 
         // ---------------- Berechtigungen
@@ -231,6 +321,16 @@ class SettingsActivity : Activity() {
             ) {
                 addView(pill("🔔  " + S.openSettings[l]) {
                     requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 2)
+                }, lp(LinearLayout.LayoutParams.WRAP_CONTENT, top = dp(8), bottom = dp(8)))
+            }
+            if (Build.VERSION.SDK_INT >= 34) {
+                val nm = getSystemService(android.app.NotificationManager::class.java)
+                val ok = nm.canUseFullScreenIntent()
+                addView(text((if (ok) "✓  " else "•  ") + S.fullScreenInfo[l], 14f, if (ok) C.teal else C.cream, Fonts.light), lp(top = dp(8)))
+                if (!ok) addView(pill(S.openSettings[l], filled = true) {
+                    try {
+                        startActivity(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:$packageName")))
+                    } catch (_: Exception) {}
                 }, lp(LinearLayout.LayoutParams.WRAP_CONTENT, top = dp(8), bottom = dp(8)))
             }
             addView(text(S.batteryInfo[l], 14f, C.cream, Fonts.light), lp(top = dp(8)))
@@ -256,6 +356,33 @@ class SettingsActivity : Activity() {
     private fun changed() {
         AlarmScheduler.reschedule(this)
         render()
+    }
+
+    private fun addSourceDialog() {
+        val l = prefs.lang
+        val name = edit(S.sourceName[l], InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS)
+        val url = edit("https://…", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
+        val wrap = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(8), dp(20), 0)
+            addView(text(S.sourceUrlHint[l], 12f, C.muted, Fonts.light))
+            addView(name, lp(top = dp(10)))
+            addView(url, lp(top = dp(8)))
+        }
+        AlertDialog.Builder(this, dialogStyle())
+            .setTitle(S.addSource[l])
+            .setView(ScrollView(this).apply { addView(wrap) })
+            .setNegativeButton(S.cancel[l], null)
+            .setPositiveButton(S.ok[l]) { _, _ ->
+                val u = url.text.toString().trim()
+                if (!u.startsWith("https://", true)) {
+                    Toast.makeText(this, S.httpsOnly[l], Toast.LENGTH_LONG).show(); return@setPositiveButton
+                }
+                Toast.makeText(this, S.downloading[l], Toast.LENGTH_SHORT).show()
+                CustomSources.add(this, name.text.toString().trim(), u) { n ->
+                    Toast.makeText(this, if (n > 0) S.sourceLoaded[l].format(n) else S.sourceFailed[l], Toast.LENGTH_LONG).show()
+                    render()
+                }
+            }.show()
     }
 
     /** Anzahl der Inhalte (Impulse + Adhkar), die eine Quelle verwenden. */
@@ -414,8 +541,7 @@ class SettingsActivity : Activity() {
         val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         box.addView(text("♪  $name", 14f, C.cream, Fonts.regular).apply { maxLines = 2 })
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        row.addView(pill(S.file[l], filled = true) { pickAudio(if (slot < 0) reqAdhan else reqPrayerBase + slot) })
-        row.addView(pill(S.link[l]) { askLink(slot) }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(6) })
+        row.addView(pill(S.choose[l], filled = true) { chooseSound(slot) })
         row.addView(pill("▶") {
             AdhanService.start(this, if (slot < 0) P.DHUHR else slot, false)
         }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(6) })
@@ -435,6 +561,148 @@ class SettingsActivity : Activity() {
         render()
     }
 
+    /** Auswahl-Dialog: eigene Aufnahmen, Vorschläge, Datei, Link oder neue Aufnahme. */
+    private fun chooseSound(slot: Int) {
+        val l = prefs.lang
+        val wrap = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(8), dp(20), dp(8)) }
+        var dialog: android.app.Dialog? = null
+        fun item(label: String, action: () -> Unit) {
+            wrap.addView(text(label, 15f, C.cream, Fonts.regular).apply {
+                setPadding(dp(4), dp(11), dp(4), dp(11))
+                clickableRipple(dp(10).toFloat())
+                setOnClickListener { dialog?.dismiss(); action() }
+            })
+        }
+        fun head(t: String) = wrap.addView(text(t.uppercase(), 11f, C.gold, Fonts.medium).apply { letterSpacing = 0.12f }, lp(top = dp(12)))
+
+        head(S.recordings[l])
+        val recs = Recordings.list(this)
+        if (recs.isEmpty()) wrap.addView(text(S.noRecordings[l], 13f, C.muted, Fonts.light), lp(top = dp(4)))
+        recs.forEach { r -> item("🎙  " + r.name) { setSound(slot, r.uri, "🎙 " + r.name) } }
+        item("●  " + S.newRecording[l]) { recordDialog(slot) }
+
+        head(S.presets[l])
+        AdhanPresets.list.forEach { pr -> item("♪  " + pr.title) { startDownload(slot, pr.url, pr.title) } }
+
+        head(S.more[l])
+        item("📁  " + S.fileFromPhone[l]) { pickAudio(if (slot < 0) reqAdhan else reqPrayerBase + slot) }
+        item("🔗  " + S.enterLink[l]) { askLink(slot) }
+        item("⏰  " + S.defaultSound[l]) { setSound(slot, null, null) }
+
+        dialog = AlertDialog.Builder(this, dialogStyle())
+            .setTitle(S.choose[l])
+            .setView(ScrollView(this).apply { addView(wrap) })
+            .setNegativeButton(S.cancel[l], null)
+            .create()
+        dialog.show()
+    }
+
+    private fun dialogStyle() = if (C.light) android.R.style.Theme_Material_Light_Dialog_Alert else android.R.style.Theme_Material_Dialog_Alert
+
+    private var pendingRecordSlot: Int? = null
+
+    /** Aufnahme-Dialog (max. 1 Minute). [assignSlot] = Gebet, dem die Aufnahme direkt zugewiesen wird (oder null). */
+    private fun recordDialog(assignSlot: Int?) {
+        val l = prefs.lang
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            pendingRecordSlot = assignSlot ?: Int.MIN_VALUE
+            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), reqMicRecord)
+            return
+        }
+        val file = Recordings.newFile(this)
+        var recorder: android.media.MediaRecorder? = null
+        var startAt = 0L
+        var recorded = false
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+
+        val timer = text("0:00 / 1:00", 34f, C.cream, Fonts.light, Gravity.CENTER).apply { fontFeatureSettings = "tnum" }
+        val status = text(S.recordHint[l], 13f, C.muted, Fonts.light, Gravity.CENTER)
+        val name = edit(S.recordingName[l], InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES).apply { visibility = View.GONE }
+        val btn = pill("●  " + S.startRecording[l], filled = true) {}
+        val wrap = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(12), dp(20), dp(4))
+            addView(timer); addView(status, lp(top = dp(4)))
+            addView(btn, LinearLayout.LayoutParams(-2, -2).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = dp(14) })
+            addView(name, lp(top = dp(14)))
+        }
+        lateinit var dialog: AlertDialog
+        val tick = object : Runnable {
+            override fun run() {
+                val ms = System.currentTimeMillis() - startAt
+                val sec = (ms / 1000).toInt().coerceAtMost(60)
+                timer.text = "%d:%02d / 1:00".format(sec / 60, sec % 60)
+                if (recorder != null) handler.postDelayed(this, 250)
+            }
+        }
+        fun stopRec() {
+            val r = recorder ?: return
+            recorder = null
+            handler.removeCallbacks(tick)
+            try { r.stop(); recorded = true } catch (_: Exception) { recorded = false; file.delete() }
+            r.release()
+            btn.text = "●  " + S.recordAgain[l]
+            status.text = if (recorded) S.recordDone[l] else S.recordFailed[l]
+            name.visibility = if (recorded) View.VISIBLE else View.GONE
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = recorded
+        }
+        btn.setOnClickListener {
+            if (recorder != null) { stopRec(); return@setOnClickListener }
+            try {
+                file.delete()
+                val r = Recordings.recorder(this, file)
+                r.setOnInfoListener { _, what, _ ->
+                    if (what == android.media.MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) stopRec()
+                }
+                r.start()
+                recorder = r
+                recorded = false
+                startAt = System.currentTimeMillis()
+                btn.text = "■  " + S.stopRecording[l]
+                status.text = S.recording[l]
+                name.visibility = View.GONE
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = false
+                handler.post(tick)
+            } catch (e: Exception) {
+                status.text = S.recordFailed[l]
+            }
+        }
+        dialog = AlertDialog.Builder(this, dialogStyle())
+            .setTitle(S.newRecording[l])
+            .setView(wrap)
+            .setNegativeButton(S.cancel[l]) { _, _ -> }
+            .setPositiveButton(S.save[l]) { _, _ ->
+                val rec = Recordings.add(this, file, name.text.toString().trim())
+                if (assignSlot != null) setSound(assignSlot, rec.uri, "🎙 " + rec.name) else render()
+            }
+            .create()
+        dialog.setOnDismissListener {
+            if (recorder != null) { try { recorder?.stop() } catch (_: Exception) {}; recorder?.release(); recorder = null; file.delete() }
+            handler.removeCallbacksAndMessages(null)
+            if (Recordings.list(this).none { it.file == file }) file.delete()
+        }
+        dialog.show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = false
+    }
+
+    private var previewPlayer: android.media.MediaPlayer? = null
+
+    private fun preview(uri: String?) {
+        previewPlayer?.release(); previewPlayer = null
+        if (uri == null) return
+        try {
+            previewPlayer = android.media.MediaPlayer().apply {
+                setDataSource(this@SettingsActivity, Uri.parse(uri))
+                setOnCompletionListener { it.release(); if (previewPlayer === it) previewPlayer = null }
+                prepare(); start()
+            }
+        } catch (_: Exception) {}
+    }
+
+    override fun onPause() {
+        super.onPause()
+        preview(null)
+    }
+
     /** Dialog für einen direkten Audio-Link. */
     private fun askLink(slot: Int) {
         val l = prefs.lang
@@ -442,25 +710,11 @@ class SettingsActivity : Activity() {
         val wrap = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(8), dp(20), 0)
-            addView(text(S.presets[l], 14f, C.gold, Fonts.medium))
-            addView(text(S.presetInfo[l], 12f, C.muted, Fonts.light), lp(top = dp(2)))
         }
-        var dialog: android.app.Dialog? = null
-        for (pr in AdhanPresets.list) {
-            wrap.addView(text("♪  " + pr.title, 15f, C.cream, Fonts.regular).apply {
-                setPadding(dp(4), dp(10), dp(4), dp(10))
-                clickableRipple(dp(10).toFloat())
-                setOnClickListener {
-                    dialog?.dismiss()
-                    startDownload(slot, pr.url, pr.title)
-                }
-            })
-        }
-        wrap.addView(text(S.orOwnLink[l], 14f, C.gold, Fonts.medium), lp(top = dp(12)))
+        val dialog: AlertDialog
         wrap.addView(text(S.linkHint[l], 12f, C.muted, Fonts.light), lp(top = dp(2)))
         wrap.addView(input, lp(top = dp(8)))
-        val style = if (C.light) android.R.style.Theme_Material_Light_Dialog_Alert else android.R.style.Theme_Material_Dialog_Alert
-        dialog = AlertDialog.Builder(this, style)
+        dialog = AlertDialog.Builder(this, dialogStyle())
             .setTitle(S.enterLink[l])
             .setView(ScrollView(this).apply { addView(wrap) })
             .setNegativeButton(S.cancel[l], null)
@@ -543,8 +797,17 @@ class SettingsActivity : Activity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == reqLocation && LocationHelper.hasPermission(this)) locateNow()
-        else render()
+        val micOk = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        when {
+            requestCode == reqLocation && LocationHelper.hasPermission(this) -> locateNow()
+            requestCode == reqMicRecord && micOk -> {
+                val slot = pendingRecordSlot
+                pendingRecordSlot = null
+                recordDialog(if (slot == null || slot == Int.MIN_VALUE) null else slot)
+            }
+            requestCode == reqMicClap -> { prefs.clapToStop = micOk; render() }
+            else -> render()
+        }
     }
 
     private fun searchCity(q: String, results: LinearLayout) {

@@ -13,6 +13,12 @@ zur Gebetszeit, Sunnah-Adhkar zu jedem Gebet und zweimal täglich einem Hadith b
   Ausrichtung, Hinweis zur Kalibrierung.
 - **Gebetsanleitung für Anfänger**: Aufbau jedes Gebets (Rakʿa Sunnah/Fard/Witr), Gebetswaschung Schritt für
   Schritt und Ablauf des Gebets mit Arabisch, Umschrift und Bedeutung. Öffnen über „Anleitung“ oder Tipp auf ein Gebet.
+- **Stil** (zusätzlich zur Farbe): Klassisch, Glas & Licht, Soft 3D, Leuchtende Nacht.
+- **Gebetsruf-Bildschirm**: Vollbild mit schwingender, leuchtender Glocke (10 Sekunden), Stopp-Knopf;
+  optional Stoppen durch 3× Klatschen (Mikrofon, nur solange der Bildschirm angezeigt wird).
+- **Eigene Aufnahmen**: Gebetsruf per Mikrofon aufnehmen (max. 1 Minute), anhören, löschen, zuweisen.
+- **Quellen**: eingebaute Quellen deaktivieren oder löschen (wiederherstellbar), eigene Quellen per URL
+  hinzufügen (JSON/Text/Webseite, siehe `quellen/LIESMICH.md`).
 - **5 Designs**: Nacht (Standard), Mitternacht, Abenddämmerung, Sandstein (hell), Minze (hell).
 - **Gebetsruf**: läuft als Vordergrund-Dienst auch bei gesperrtem Bildschirm, mit „Stopp“-Knopf
   in der Benachrichtigung. Standard-Gebetsruf plus individuell je Gebet: Datei vom Handy oder direkter

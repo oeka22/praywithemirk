@@ -66,6 +66,18 @@ enum class AppTheme(val id: String, val title: T, val p: Palette) {
     }
 }
 
+/** Darstellungsstil – unabhängig von der Farbpalette kombinierbar. */
+enum class AppStyle(val id: String, val title: T) {
+    CLASSIC("classic", T("Klassisch", "Klasik", "Classic")),
+    GLASS("glass", T("Glas & Licht", "Cam ve ışık", "Glass & light")),
+    SOFT3D("soft3d", T("Soft 3D", "Yumuşak 3D", "Soft 3D")),
+    GLOW("glow", T("Leuchtende Nacht", "Işıldayan gece", "Glowing night"));
+
+    companion object {
+        fun byId(id: String?): AppStyle = entries.firstOrNull { it.id == id } ?: CLASSIC
+    }
+}
+
 /** Aktive Farben – werden beim Start jeder Seite aus dem gewählten Design gesetzt. */
 object C {
     var bgTop = 0; var bgBottom = 0; var card = 0; var cardStroke = 0
@@ -73,6 +85,7 @@ object C {
     var cream = 0; var muted = 0; var faint = 0; var teal = 0; var pattern = 0
     var light = false
     var theme = AppTheme.NIGHT
+    var style = AppStyle.CLASSIC
 
     init { use(AppTheme.NIGHT) }
 
@@ -90,6 +103,7 @@ object C {
     @Suppress("DEPRECATION")
     fun applyTo(a: android.app.Activity, t: AppTheme) {
         use(t)
+        style = Prefs(a).style
         val w = a.window
         w.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(bgTop))
         w.statusBarColor = bgTop
@@ -149,8 +163,128 @@ fun roundRect(color: Int, radius: Float, stroke: Int = 0, strokeWidth: Int = 0):
 /** Karte mit weichem, halbtransparentem Hintergrund. */
 fun Context.card(padding: Int = 18): LinearLayout = LinearLayout(this).apply {
     orientation = LinearLayout.VERTICAL
-    background = roundRect(C.card, dp(20).toFloat(), C.cardStroke, dp(1))
-    setPadding(dp(padding), dp(padding), dp(padding), dp(padding))
+    if (C.style == AppStyle.CLASSIC) {
+        background = roundRect(C.card, dp(20).toFloat(), C.cardStroke, dp(1))
+        setPadding(dp(padding), dp(padding), dp(padding), dp(padding))
+    } else {
+        val d = StyledCard(this@card, dp(20).toFloat())
+        background = d
+        setLayerType(View.LAYER_TYPE_SOFTWARE, null) // für Schatten/Unschärfe auf allen Android-Versionen
+        val m = d.margin
+        setPadding(dp(padding) + m, dp(padding) + m - d.shiftUp, dp(padding) + m, dp(padding) + m + d.shiftUp)
+    }
+}
+
+/** Hervorhebung der aktuellen Zeile passend zum Stil. */
+fun Context.rowHighlight(): android.graphics.drawable.Drawable =
+    if (C.style == AppStyle.CLASSIC) roundRect(C.goldSoft, dp(14).toFloat()) else RowHighlight(this, dp(14).toFloat())
+
+private fun mix(a: Int, b: Int, t: Float): Int = Color.rgb(
+    (Color.red(a) + (Color.red(b) - Color.red(a)) * t).toInt(),
+    (Color.green(a) + (Color.green(b) - Color.green(a)) * t).toInt(),
+    (Color.blue(a) + (Color.blue(b) - Color.blue(a)) * t).toInt()
+)
+fun darker(c: Int, t: Float) = mix(c, Color.BLACK, t)
+fun lighter(c: Int, t: Float) = mix(c, Color.WHITE, t)
+
+/** Kartenhintergrund mit Licht und Schatten (Glas, Soft 3D, Leuchtende Nacht). */
+class StyledCard(private val ctx: Context, private val radius: Float) : android.graphics.drawable.Drawable() {
+    val margin: Int = when (C.style) { AppStyle.SOFT3D -> ctx.dp(9); AppStyle.GLOW -> ctx.dp(10); else -> ctx.dp(6) }
+    /** Inhalt etwas nach oben, damit unten Platz für den Schatten bleibt. */
+    val shiftUp: Int = if (C.style == AppStyle.GLOW) ctx.dp(3) else 0
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val r = RectF()
+
+    override fun draw(c: Canvas) {
+        val b = bounds
+        val m = margin.toFloat()
+        r.set(b.left + m, b.top + m - shiftUp, b.right - m, b.bottom - m - shiftUp)
+        p.reset(); p.isAntiAlias = true
+        when (C.style) {
+            AppStyle.GLASS -> {
+                p.color = Color.argb(110, 0, 0, 0)
+                p.maskFilter = android.graphics.BlurMaskFilter(m, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                c.drawRoundRect(r.left, r.top + m / 2, r.right, r.bottom + m / 2, radius, radius, p)
+                p.maskFilter = null
+                p.shader = LinearGradient(r.left, r.top, r.right * 0.6f, r.bottom,
+                    alpha(Color.WHITE, if (C.light) 170 else 38), alpha(Color.WHITE, if (C.light) 110 else 10), Shader.TileMode.CLAMP)
+                c.drawRoundRect(r, radius, radius, p)
+                p.shader = LinearGradient(0f, r.top, 0f, r.bottom,
+                    alpha(Color.WHITE, if (C.light) 230 else 90), alpha(Color.WHITE, if (C.light) 60 else 12), Shader.TileMode.CLAMP)
+                p.style = Paint.Style.STROKE; p.strokeWidth = ctx.dp(1f).toFloat()
+                c.drawRoundRect(r, radius, radius, p)
+            }
+            AppStyle.SOFT3D -> {
+                val base = C.bgTop
+                val off = m * 0.55f
+                p.maskFilter = android.graphics.BlurMaskFilter(m * 0.9f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                p.color = darker(base, if (C.light) 0.18f else 0.45f)
+                c.drawRoundRect(r.left + off, r.top + off, r.right + off, r.bottom + off, radius, radius, p)
+                p.color = lighter(base, if (C.light) 0.7f else 0.10f)
+                c.drawRoundRect(r.left - off, r.top - off, r.right - off, r.bottom - off, radius, radius, p)
+                p.maskFilter = null
+                p.color = base
+                c.drawRoundRect(r, radius, radius, p)
+            }
+            else -> { // GLOW
+                p.color = Color.argb(190, 0, 0, 0)
+                p.maskFilter = android.graphics.BlurMaskFilter(m, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                c.drawRoundRect(r.left + m * 0.2f, r.top + m * 0.6f, r.right - m * 0.2f, r.bottom + m * 0.8f, radius, radius, p)
+                p.maskFilter = null
+                p.shader = LinearGradient(0f, r.top, 0f, r.bottom,
+                    lighter(C.bgTop, if (C.light) 0.6f else 0.09f), darker(C.bgTop, if (C.light) 0f else 0.05f), Shader.TileMode.CLAMP)
+                c.drawRoundRect(r, radius, radius, p)
+                p.shader = LinearGradient(0f, r.top, 0f, r.top + radius * 2,
+                    alpha(Color.WHITE, if (C.light) 200 else 45), alpha(Color.WHITE, 0), Shader.TileMode.CLAMP)
+                p.style = Paint.Style.STROKE; p.strokeWidth = ctx.dp(1f).toFloat()
+                c.drawRoundRect(r, radius, radius, p)
+            }
+        }
+    }
+    override fun setAlpha(alpha: Int) {}
+    override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {}
+    @Deprecated("Deprecated in Java")
+    override fun getOpacity(): Int = android.graphics.PixelFormat.TRANSLUCENT
+}
+
+/** Leuchtende/eingedrückte Hervorhebung der aktuellen Gebetszeile. */
+class RowHighlight(private val ctx: Context, private val radius: Float) : android.graphics.drawable.Drawable() {
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val r = RectF()
+    override fun draw(c: Canvas) {
+        r.set(bounds)
+        p.reset(); p.isAntiAlias = true
+        when (C.style) {
+            AppStyle.SOFT3D -> {
+                p.color = darker(C.bgTop, if (C.light) 0.05f else 0.12f)
+                c.drawRoundRect(r, radius, radius, p)
+                p.style = Paint.Style.STROKE; p.strokeWidth = ctx.dp(2f).toFloat()
+                p.shader = LinearGradient(r.left, r.top, r.right, r.bottom,
+                    darker(C.bgTop, if (C.light) 0.2f else 0.5f), lighter(C.bgTop, if (C.light) 0.8f else 0.12f), Shader.TileMode.CLAMP)
+                c.drawRoundRect(r, radius, radius, p)
+            }
+            AppStyle.GLOW -> {
+                p.shader = LinearGradient(r.left, 0f, r.right, 0f, alpha(C.gold, 70), alpha(C.gold, 0), Shader.TileMode.CLAMP)
+                c.drawRoundRect(r, radius, radius, p)
+                p.shader = null
+                p.color = C.gold
+                p.setShadowLayer(ctx.dp(8f).toFloat(), 0f, 0f, C.gold)
+                c.drawRoundRect(r.left, r.top + ctx.dp(6), r.left + ctx.dp(3), r.bottom - ctx.dp(6), 4f, 4f, p)
+            }
+            else -> { // GLASS
+                p.shader = LinearGradient(r.left, 0f, r.right, 0f, alpha(C.gold, 80), alpha(C.gold, 18), Shader.TileMode.CLAMP)
+                c.drawRoundRect(r, radius, radius, p)
+                p.shader = null
+                p.style = Paint.Style.STROKE; p.strokeWidth = ctx.dp(1f).toFloat()
+                p.color = alpha(C.gold, 120)
+                c.drawRoundRect(r, radius, radius, p)
+            }
+        }
+    }
+    override fun setAlpha(alpha: Int) {}
+    override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {}
+    @Deprecated("Deprecated in Java")
+    override fun getOpacity(): Int = android.graphics.PixelFormat.TRANSLUCENT
 }
 
 fun View.clickableRipple(radius: Float) {
@@ -189,8 +323,31 @@ class PatternBackground(context: Context) : View(context) {
         bg.shader = LinearGradient(0f, 0f, w * 0.3f, h.toFloat(), C.bgTop, C.bgBottom, Shader.TileMode.CLAMP)
     }
 
+    private val light = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val vignette = Paint(Paint.ANTI_ALIAS_FLAG)
+
     override fun onDraw(canvas: Canvas) {
-        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bg)
+        val w = width.toFloat(); val h = height.toFloat()
+        when (C.style) {
+            AppStyle.SOFT3D -> { canvas.drawColor(C.bgTop); return }
+            AppStyle.GLOW -> {
+                canvas.drawRect(0f, 0f, w, h, bg)
+                light.shader = android.graphics.RadialGradient(w * 0.5f, -h * 0.05f, maxOf(w, 1f) * 1.1f,
+                    alpha(C.gold, if (C.light) 70 else 55), alpha(C.gold, 0), Shader.TileMode.CLAMP)
+                canvas.drawRect(0f, 0f, w, h, light)
+                vignette.shader = android.graphics.RadialGradient(w / 2, h * 0.45f, maxOf(w, h, 1f) * 0.8f,
+                    Color.TRANSPARENT, Color.argb(if (C.light) 30 else 140, 0, 0, 0), Shader.TileMode.CLAMP)
+                canvas.drawRect(0f, 0f, w, h, vignette)
+                return
+            }
+            AppStyle.GLASS -> {
+                canvas.drawRect(0f, 0f, w, h, bg)
+                light.shader = android.graphics.RadialGradient(w * 0.2f, h * 0.08f, maxOf(w, 1f) * 0.9f,
+                    alpha(lighter(C.teal, 0.3f), if (C.light) 90 else 70), Color.TRANSPARENT, Shader.TileMode.CLAMP)
+                canvas.drawRect(0f, 0f, w, h, light)
+            }
+            else -> canvas.drawRect(0f, 0f, w, h, bg)
+        }
         val cell = context.dp(84).toFloat()
         val r = cell * 0.36f
         var y = 0f
@@ -250,10 +407,56 @@ class RingView(context: Context) : View(context) {
         arc.shader = SweepGradient(w / 2f, h / 2f, intArrayOf(C.teal, C.gold, C.teal), null)
     }
 
+    init {
+        if (C.style != AppStyle.CLASSIC) setLayerType(LAYER_TYPE_SOFTWARE, null)
+    }
+    private val fx = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    /** Plastischer bzw. leuchtender Untergrund des Rings je nach Stil. */
+    private fun drawBase(c: Canvas, cx: Float, cy: Float, r: Float) {
+        fx.reset(); fx.isAntiAlias = true
+        when (C.style) {
+            AppStyle.GLASS -> {
+                fx.shader = android.graphics.RadialGradient(cx - r * 0.3f, cy - r * 0.4f, r * 1.3f,
+                    alpha(Color.WHITE, if (C.light) 150 else 34), alpha(Color.WHITE, if (C.light) 40 else 4), Shader.TileMode.CLAMP)
+                c.drawCircle(cx, cy, r - stroke, fx)
+            }
+            AppStyle.SOFT3D -> {
+                val base = C.bgTop; val off = stroke * 1.3f
+                fx.maskFilter = android.graphics.BlurMaskFilter(stroke * 2f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                fx.color = darker(base, if (C.light) 0.2f else 0.5f); c.drawCircle(cx + off, cy + off, r + stroke, fx)
+                fx.color = lighter(base, if (C.light) 0.8f else 0.12f); c.drawCircle(cx - off, cy - off, r + stroke, fx)
+                fx.maskFilter = null
+                fx.color = base; c.drawCircle(cx, cy, r + stroke, fx)
+                // eingedrückte Innenfläche
+                fx.style = Paint.Style.STROKE; fx.strokeWidth = stroke * 0.8f
+                fx.shader = LinearGradient(cx - r, cy - r, cx + r, cy + r,
+                    darker(base, if (C.light) 0.15f else 0.45f), lighter(base, if (C.light) 0.7f else 0.1f), Shader.TileMode.CLAMP)
+                c.drawCircle(cx, cy, r - stroke * 2.2f, fx)
+            }
+            AppStyle.GLOW -> {
+                fx.shader = android.graphics.RadialGradient(cx, cy - r * 0.3f, r * 1.2f,
+                    lighter(C.bgTop, if (C.light) 0.5f else 0.12f), C.bgTop, Shader.TileMode.CLAMP)
+                c.drawCircle(cx, cy, r, fx)
+                fx.shader = null
+                fx.style = Paint.Style.STROKE; fx.strokeWidth = stroke * 3f
+                fx.color = alpha(C.gold, 45)
+                fx.maskFilter = android.graphics.BlurMaskFilter(stroke * 4f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                c.drawCircle(cx, cy, r, fx)
+            }
+            else -> {}
+        }
+    }
+
     override fun onDraw(canvas: Canvas) {
         val cx = oval.centerX(); val cy = oval.centerY(); val r = oval.width() / 2
+        drawBase(canvas, cx, cy, r)
+        if (C.style == AppStyle.GLASS || C.style == AppStyle.GLOW) {
+            arc.setShadowLayer(stroke * (if (C.style == AppStyle.GLOW) 2.5f else 1.4f), 0f, 0f, C.gold)
+        } else arc.clearShadowLayer()
+        if (C.style == AppStyle.SOFT3D) { arc.shader = null; arc.color = C.gold }
         // feine Stundenmarken
-        for (i in 0 until 60) {
+        for (i in 0 until (if (C.style == AppStyle.CLASSIC || C.style == AppStyle.GLASS) 60 else 0)) {
             val a = Math.toRadians(i * 6.0)
             val inner = r - stroke * (if (i % 5 == 0) 2.6f else 1.8f)
             val outer = r - stroke * 1.2f

@@ -414,6 +414,7 @@ object DailyContent {
     fun current(
         now: ZonedDateTime, fajr: ZonedDateTime, maghrib: ZonedDateTime,
         allowed: (DailyItem) -> Boolean = { true },
+        extra: List<DailyItem> = emptyList(),
     ): Pair<Boolean, DailyItem?> {
         val date: LocalDate
         val evening: Boolean
@@ -426,7 +427,7 @@ object DailyContent {
         val day = date.toEpochDay()
         val hadithFirst = Math.floorMod(day, 2L) == 0L
         val showHadith = if (evening) !hadithFirst else hadithFirst
-        val h = hadith.filter(allowed)
+        val h = hadith.filter(allowed) + extra // eigene Quellen zählen zum Hadith-/Textanteil
         val q = quran.filter(allowed)
         val pool = when {
             showHadith && h.isNotEmpty() -> h

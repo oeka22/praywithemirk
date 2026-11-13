@@ -204,6 +204,60 @@ object S {
     )
     val orOwnLink = T("Oder eigener Link:", "Veya kendi bağlantın:", "Or your own link:")
 
+    // Neu: Stil, Adhan-Bildschirm, Aufnahmen, Quellen
+    val styleLabel = T("Stil", "Stil", "Style")
+    val choose = T("Auswählen", "Seç", "Choose")
+    val more = T("Weitere", "Diğer", "More")
+    val fileFromPhone = T("Datei vom Handy …", "Telefondan dosya …", "File from phone …")
+    val clapHint = T("3× klatschen zum Stoppen", "Durdurmak için 3 kez alkışla", "Clap 3× to stop")
+    val clapSetting = T("Gebetsruf durch 3× Klatschen stoppen", "Ezanı 3 kez alkışlayarak durdur", "Stop the adhan by clapping 3×")
+    val clapInfo = T(
+        "Funktioniert, solange der Gebetsruf-Bildschirm angezeigt wird. Das Mikrofon hört nur in dieser Zeit zu; nichts wird gespeichert. Bei sehr lautem Gebetsruf direkt neben dem Handy kann die Erkennung unzuverlässig sein.",
+        "Ezan ekranı açıkken çalışır. Mikrofon yalnızca bu sırada dinler; hiçbir şey kaydedilmez. Ezan telefonun hemen yanında çok yüksek sesle çalıyorsa algılama güvenilir olmayabilir.",
+        "Works while the adhan screen is shown. The microphone only listens during that time; nothing is stored. With a very loud adhan right next to the phone detection may be unreliable."
+    )
+    val fullScreenInfo = T(
+        "Vollbild beim Gebetsruf erlauben (zeigt die Glocke auch bei gesperrtem Bildschirm).",
+        "Ezan sırasında tam ekrana izin ver (kilitli ekranda da zili gösterir).",
+        "Allow full screen for the adhan (shows the bell even on the lock screen)."
+    )
+    val recordings = T("Eigene Aufnahmen", "Kendi kayıtlarım", "My recordings")
+    val recordingsInfo = T(
+        "Nimm einen Gebetsruf über das Mikrofon auf (max. 1 Minute). Aufnahmen erscheinen bei „Auswählen“ in der Liste der Gebetsrufe.",
+        "Mikrofonla bir ezan kaydet (en fazla 1 dakika). Kayıtlar „Seç“ listesinde görünür.",
+        "Record an adhan with the microphone (max. 1 minute). Recordings appear in the list under “Choose”."
+    )
+    val noRecordings = T("Noch keine Aufnahmen.", "Henüz kayıt yok.", "No recordings yet.")
+    val newRecording = T("Neue Aufnahme", "Yeni kayıt", "New recording")
+    val startRecording = T("Aufnahme starten", "Kaydı başlat", "Start recording")
+    val stopRecording = T("Aufnahme beenden", "Kaydı durdur", "Stop recording")
+    val recordAgain = T("Neu aufnehmen", "Yeniden kaydet", "Record again")
+    val recordHint = T("Halte das Handy nah an die Tonquelle.", "Telefonu ses kaynağına yakın tut.", "Hold the phone close to the sound source.")
+    val recording = T("Aufnahme läuft …", "Kaydediliyor …", "Recording …")
+    val recordDone = T("Fertig. Gib der Aufnahme einen Namen und speichere sie.", "Bitti. Kayda bir ad ver ve kaydet.", "Done. Give the recording a name and save it.")
+    val recordFailed = T("Aufnahme fehlgeschlagen.", "Kayıt başarısız.", "Recording failed.")
+    val recordingName = T("Name, z. B. Adhan Papa", "Ad, örn. Babamın ezanı", "Name, e.g. Dad's adhan")
+    val deleteRecording = T("Aufnahme löschen?", "Kayıt silinsin mi?", "Delete recording?")
+    val delete = T("Löschen", "Sil", "Delete")
+    val restoreSources = T("Gelöschte Quellen wiederherstellen", "Silinen kaynakları geri yükle", "Restore deleted sources")
+    val deleteSource = T("Quelle löschen?", "Kaynak silinsin mi?", "Delete source?")
+    val deleteSourceInfo = T(
+        "Ihre Inhalte werden nicht mehr verwendet.",
+        "İçerikleri artık kullanılmayacak.",
+        "Its content will no longer be used."
+    )
+    val addSource = T("Quelle per URL hinzufügen", "URL ile kaynak ekle", "Add source by URL")
+    val sourceName = T("Name der Quelle", "Kaynağın adı", "Name of the source")
+    val sourceUrlHint = T(
+        "https-Adresse einer Text- oder JSON-Datei mit Hadithen/Versen. Am besten eine Datei im Beispiel-Format (siehe quellen/beispiel.json im Projekt). Normale Webseiten werden in Absätze zerlegt – das Ergebnis ist dann weniger sauber.",
+        "Hadis/ayet içeren bir metin veya JSON dosyasının https adresi. En iyisi örnek formattaki bir dosya (projede quellen/beispiel.json). Normal web sayfaları paragraflara ayrılır – sonuç daha az düzenli olur.",
+        "https address of a text or JSON file with hadiths/verses. Best is a file in the example format (see quellen/beispiel.json in the project). Normal web pages are split into paragraphs – the result is less clean."
+    )
+    val sourceLoaded = T("%d Inhalte geladen", "%d içerik yüklendi", "%d items loaded")
+    val sourceFailed = T("Keine Inhalte gefunden.", "İçerik bulunamadı.", "No content found.")
+    val refresh = T("Aktualisieren", "Yenile", "Refresh")
+    val ownSource = T("Eigene Quelle", "Kendi kaynağın", "Own source")
+
     val weekdays = arrayOf(
         T("Montag", "Pazartesi", "Monday"), T("Dienstag", "Salı", "Tuesday"),
         T("Mittwoch", "Çarşamba", "Wednesday"), T("Donnerstag", "Perşembe", "Thursday"),

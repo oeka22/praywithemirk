@@ -85,6 +85,7 @@ class MainActivity : Activity() {
         refreshAll()
         AlarmScheduler.reschedule(this)
         if (prefs.autoLocation && prefs.hasLocation && LocationHelper.hasPermission(this)) autoLocate()
+        CustomSources.refreshStale(this)
         handler.removeCallbacks(tick)
         handler.post(tick)
     }
@@ -100,7 +101,7 @@ class MainActivity : Activity() {
         refreshAll()
     }
 
-    private fun uiKey() = "${prefs.lang.id}|${prefs.theme.id}|${resources.configuration.screenWidthDp}|${prefs.ringBig}|${prefs.headerClock}|${prefs.clockSize}"
+    private fun uiKey() = "${prefs.lang.id}|${prefs.theme.id}|${prefs.style.id}|${resources.configuration.screenWidthDp}|${prefs.ringBig}|${prefs.headerClock}|${prefs.clockSize}"
 
     // ---------------------------------------------------------------- Aufbau
 
@@ -311,7 +312,7 @@ class MainActivity : Activity() {
             }
             if (wide) {
                 // Kacheln nebeneinander (Tablet / Querformat)
-                val tile = LinearLayout(this).apply {
+                val tile = if (C.style == AppStyle.CLASSIC) LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER_HORIZONTAL
                     setPadding(dp(6), dp(12), dp(6), dp(6))
@@ -319,6 +320,9 @@ class MainActivity : Activity() {
                         if (isCurrent) C.goldSoft else C.card, dp(18).toFloat(),
                         if (i == next) C.gold else C.cardStroke, dp(1)
                     )
+                } else card(6).apply {
+                    gravity = Gravity.CENTER_HORIZONTAL
+                    if (isCurrent) foreground = rowHighlight().also { it.alpha = 255 }
                 }
                 tile.addView(text(S.prayerNames[i][l], 14f, nameColor, Fonts.medium, Gravity.CENTER).apply { maxLines = 1 })
                 tile.addView(text(S.prayerArabic[i], 13f, C.faint, Fonts.serif, Gravity.CENTER))
@@ -331,7 +335,7 @@ class MainActivity : Activity() {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
                     setPadding(dp(14), dp(10), dp(6), dp(10))
-                    if (isCurrent) background = roundRect(C.goldSoft, dp(14).toFloat())
+                    if (isCurrent) background = rowHighlight()
                 }
                 val names = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
                 names.addView(text(S.prayerNames[i][l], 16f, nameColor, if (isCurrent) Fonts.medium else Fonts.regular))
@@ -349,8 +353,8 @@ class MainActivity : Activity() {
     private fun buildImpulse(now: ZonedDateTime) {
         val l = prefs.lang
         val times = prefs.timesFor(now.toLocalDate(), now.zone)
-        val (evening, item) = DailyContent.current(now, times[P.FAJR], times[P.MAGHRIB]) { prefs.allowed(it.source) }
-        val key = "${l.id}|${prefs.showTranslit}|$evening|${item?.arabic?.hashCode()}"
+        val (evening, item) = DailyContent.current(now, times[P.FAJR], times[P.MAGHRIB], { prefs.allowed(it.source) }, CustomSources.enabledItems(this))
+        val key = "${l.id}|${prefs.showTranslit}|$evening|${item?.arabic?.hashCode()}|${item?.meaning?.de?.hashCode()}"
         if (key == impulseKey) return
         impulseKey = key
 
@@ -365,10 +369,10 @@ class MainActivity : Activity() {
             return
         }
         impulseBox.addView(
-            text(if (item.isQuran) item.title[l] else S.hadith[l], 15f * s, C.cream, Fonts.medium),
+            text(item.title[l], 15f * s, C.cream, Fonts.medium),
             lp(top = dp(6))
         )
-        impulseBox.addView(arabic(item.arabic, 21f * s), lp(top = dp(8)))
+        if (item.arabic.isNotBlank()) impulseBox.addView(arabic(item.arabic, 21f * s), lp(top = dp(8)))
         if (prefs.showTranslit && item.translit != null) {
             impulseBox.addView(text(item.translit, 13f * s, C.teal, Fonts.italic), lp(top = dp(8)))
         }

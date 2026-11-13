@@ -60,11 +60,22 @@ class Prefs(context: Context) {
     /** Welche Audiodatei für ein Gebet gespielt wird (null = Weckton des Geräts). */
     fun soundFor(i: Int): String? = prayerUri(i) ?: adhanUri
 
+    /** Gebetsruf durch dreimaliges Klatschen stoppen (Mikrofon). */
+    var clapToStop: Boolean
+        get() = sp.getBoolean("clap_stop", false)
+        set(v) = sp.edit().putBoolean("clap_stop", v).apply()
+
+    var style: AppStyle
+        get() = AppStyle.byId(sp.getString("style", AppStyle.CLASSIC.id))
+        set(v) = sp.edit().putString("style", v.id).apply()
+
     var theme: AppTheme
         get() = AppTheme.byId(sp.getString("theme", AppTheme.NIGHT.id))
         set(v) = sp.edit().putString("theme", v.id).apply()
 
-    fun sourceEnabled(s: Src): Boolean = sp.getBoolean("src_${s.id}", true)
+    fun sourceEnabled(s: Src): Boolean = !sourceDeleted(s) && sp.getBoolean("src_${s.id}", true)
+    fun sourceDeleted(s: Src): Boolean = sp.getBoolean("src_deleted_${s.id}", false)
+    fun setSourceDeleted(s: Src, v: Boolean) = sp.edit().putBoolean("src_deleted_${s.id}", v).apply()
     fun setSourceEnabled(s: Src, v: Boolean) = sp.edit().putBoolean("src_${s.id}", v).apply()
 
     /** Ein Inhalt wird verwendet, wenn mindestens eine seiner Quellen aktiv ist. */

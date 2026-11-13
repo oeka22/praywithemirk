@@ -27,6 +27,9 @@ class AdhanService : Service() {
     companion object {
         const val ACTION_PLAY = "com.praywithemirk.app.action.PLAY"
         const val ACTION_STOP = "com.praywithemirk.app.action.STOP"
+
+        /** true, solange ein Gebetsruf läuft (für den Adhan-Bildschirm). */
+        @Volatile var playing = false
         private const val MAX_DURATION_MS = 7 * 60_000L
         private const val DEFAULT_TONE_MS = 30_000L
 
@@ -62,6 +65,7 @@ class AdhanService : Service() {
         }
         prayer = intent?.getIntExtra(AlarmScheduler.EXTRA_PRAYER, P.DHUHR) ?: P.DHUHR
         finished = false
+        playing = true
         Notifications.ensureChannels(this)
         val n = buildNotification()
         if (Build.VERSION.SDK_INT >= 29) {
@@ -70,8 +74,17 @@ class AdhanService : Service() {
             startForeground(Notifications.ID_ADHAN, n)
         }
         play()
+        // Ist die App gerade sichtbar (z. B. als Wanduhr), den Adhan-Bildschirm direkt öffnen.
+        if (App.visibleActivities > 0) {
+            try { startActivity(adhanScreenIntent()) } catch (_: Exception) {}
+        }
         return START_NOT_STICKY
     }
+
+    private fun adhanScreenIntent(): Intent =
+        Intent(this, AdhanActivity::class.java)
+            .putExtra(AdhanActivity.EXTRA_PRAYER, prayer)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
     private fun buildNotification(): Notification {
         val l = Prefs(this).lang
@@ -81,10 +94,15 @@ class AdhanService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val stopAction = Notification.Action.Builder(null, S.stop[l], stopPi).build()
+        val screenPi = PendingIntent.getActivity(
+            this, 2, adhanScreenIntent(),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         return Notifications.builder(this, Notifications.CH_ADHAN)
             .setContentTitle(S.timeFor[l].format(S.prayerNames[prayer][l]) + "  ·  " + S.prayerArabic[prayer])
             .setContentText(S.adhanPlaying[l])
-            .setContentIntent(Notifications.dhikrIntent(this, prayer))
+            .setContentIntent(screenPi)
+            .setFullScreenIntent(screenPi, true)
             .setDeleteIntent(stopPi)
             .addAction(stopAction)
             .setCategory(Notification.CATEGORY_ALARM)
@@ -153,6 +171,8 @@ class AdhanService : Service() {
     private fun finish() {
         if (finished) return
         finished = true
+        playing = false
+        sendBroadcast(Intent(AdhanActivity.ACTION_FINISHED).setPackage(packageName))
         handler.removeCallbacksAndMessages(null)
         stopPlayer()
         focusRequest?.let { getSystemService(AudioManager::class.java).abandonAudioFocusRequest(it) }
@@ -162,6 +182,7 @@ class AdhanService : Service() {
     }
 
     override fun onDestroy() {
+        playing = false
         handler.removeCallbacksAndMessages(null)
         stopPlayer()
         super.onDestroy()
