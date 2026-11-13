@@ -1,0 +1,169 @@
+package com.praywithemirk.app
+
+import android.app.Notification
+import android.app.PendingIntent
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.media.MediaPlayer
+import android.media.RingtoneManager
+import android.net.Uri
+import android.os.Build
+import android.os.Handler
+import android.os.IBinder
+import android.os.Looper
+import android.os.PowerManager
+
+/**
+ * Spielt den Gebetsruf als Vordergrund-Dienst ab (auch bei gesperrtem Bildschirm).
+ * Ohne eigene Audiodatei wird der Standard-Weckton ca. 30 Sekunden lang wiederholt.
+ */
+class AdhanService : Service() {
+
+    companion object {
+        const val ACTION_PLAY = "com.praywithemirk.app.action.PLAY"
+        const val ACTION_STOP = "com.praywithemirk.app.action.STOP"
+        private const val MAX_DURATION_MS = 7 * 60_000L
+        private const val DEFAULT_TONE_MS = 30_000L
+
+        fun start(ctx: Context, prayer: Int, fromAlarm: Boolean) {
+            val i = Intent(ctx, AdhanService::class.java)
+                .setAction(ACTION_PLAY)
+                .putExtra(AlarmScheduler.EXTRA_PRAYER, prayer)
+            try {
+                ctx.startForegroundService(i)
+            } catch (e: Exception) {
+                // z. B. ForegroundServiceStartNotAllowedException, wenn kein exakter Alarm erlaubt ist
+                if (fromAlarm) Notifications.showPrayerWithSound(ctx, prayer)
+            }
+        }
+
+        fun stop(ctx: Context) {
+            ctx.startService(Intent(ctx, AdhanService::class.java).setAction(ACTION_STOP))
+        }
+    }
+
+    private var player: MediaPlayer? = null
+    private var prayer: Int = P.DHUHR
+    private var focusRequest: AudioFocusRequest? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private val stopRunnable = Runnable { finish() }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP) {
+            finish()
+            return START_NOT_STICKY
+        }
+        prayer = intent?.getIntExtra(AlarmScheduler.EXTRA_PRAYER, P.DHUHR) ?: P.DHUHR
+        finished = false
+        Notifications.ensureChannels(this)
+        val n = buildNotification()
+        if (Build.VERSION.SDK_INT >= 29) {
+            startForeground(Notifications.ID_ADHAN, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+        } else {
+            startForeground(Notifications.ID_ADHAN, n)
+        }
+        play()
+        return START_NOT_STICKY
+    }
+
+    private fun buildNotification(): Notification {
+        val l = Prefs(this).lang
+        val stopPi = PendingIntent.getService(
+            this, 1,
+            Intent(this, AdhanService::class.java).setAction(ACTION_STOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val stopAction = Notification.Action.Builder(null, S.stop[l], stopPi).build()
+        return Notifications.builder(this, Notifications.CH_ADHAN)
+            .setContentTitle(S.timeFor[l].format(S.prayerNames[prayer][l]) + "  ·  " + S.prayerArabic[prayer])
+            .setContentText(S.adhanPlaying[l])
+            .setContentIntent(Notifications.dhikrIntent(this, prayer))
+            .setDeleteIntent(stopPi)
+            .addAction(stopAction)
+            .setCategory(Notification.CATEGORY_ALARM)
+            .setOngoing(true)
+            .build()
+    }
+
+    private fun play() {
+        handler.removeCallbacksAndMessages(null)
+        stopPlayer()
+        val prefs = Prefs(this)
+        val custom = prefs.soundFor(prayer)
+        val attrs = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+            .build()
+        requestFocus(attrs)
+
+        val ok = custom != null && tryPlay(Uri.parse(custom), attrs, loop = false)
+        if (!ok) {
+            val def = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            if (def == null || !tryPlay(def, attrs, loop = true)) {
+                finish(); return
+            }
+            handler.postDelayed(stopRunnable, DEFAULT_TONE_MS)
+        }
+        handler.postDelayed(stopRunnable, MAX_DURATION_MS)
+    }
+
+    private fun tryPlay(uri: Uri, attrs: AudioAttributes, loop: Boolean): Boolean = try {
+        val mp = MediaPlayer()
+        mp.setAudioAttributes(attrs)
+        mp.setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
+        mp.setDataSource(applicationContext, uri)
+        mp.isLooping = loop
+        mp.setOnCompletionListener { finish() }
+        mp.setOnErrorListener { _, _, _ -> finish(); true }
+        mp.prepare()
+        mp.start()
+        player = mp
+        true
+    } catch (e: Exception) {
+        false
+    }
+
+    private fun requestFocus(attrs: AudioAttributes) {
+        val am = getSystemService(AudioManager::class.java)
+        val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+            .setAudioAttributes(attrs)
+            .build()
+        focusRequest = req
+        am.requestAudioFocus(req)
+    }
+
+    private fun stopPlayer() {
+        player?.let {
+            try { it.stop() } catch (_: Exception) {}
+            it.release()
+        }
+        player = null
+    }
+
+    private var finished = false
+
+    private fun finish() {
+        if (finished) return
+        finished = true
+        handler.removeCallbacksAndMessages(null)
+        stopPlayer()
+        focusRequest?.let { getSystemService(AudioManager::class.java).abandonAudioFocusRequest(it) }
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        Notifications.showAfterAdhan(this, prayer)
+        stopSelf()
+    }
+
+    override fun onDestroy() {
+        handler.removeCallbacksAndMessages(null)
+        stopPlayer()
+        super.onDestroy()
+    }
+}
