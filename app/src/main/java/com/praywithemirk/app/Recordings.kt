@@ -8,9 +8,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-/** Eigene Gebetsruf-Aufnahmen über das Mikrofon (max. 1 Minute). */
+/** Eigene Gebetsruf-Aufnahmen über das Mikrofon (max. 3 Minuten). */
 object Recordings {
-    const val MAX_MS = 60_000
+    const val MAX_MS = 180_000
 
     class Rec(val id: String, val name: String, val file: File) {
         val uri: String get() = Uri.fromFile(file).toString()

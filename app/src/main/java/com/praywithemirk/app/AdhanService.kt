@@ -53,6 +53,7 @@ class AdhanService : Service() {
     private var player: MediaPlayer? = null
     private var prayer: Int = P.DHUHR
     private var focusRequest: AudioFocusRequest? = null
+    private var savedAlarmVolume = -1
     private val handler = Handler(Looper.getMainLooper())
     private val stopRunnable = Runnable { finish() }
 
@@ -120,6 +121,7 @@ class AdhanService : Service() {
             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
             .build()
         requestFocus(attrs)
+        applyVolume(prefs.volume(prayer))
 
         val ok = custom != null && tryPlay(Uri.parse(custom), attrs, loop = false)
         if (!ok) {
@@ -149,6 +151,24 @@ class AdhanService : Service() {
         false
     }
 
+    /** Setzt die Wecker-Lautstärke für die Dauer des Gebetsrufs auf den gewünschten Anteil. */
+    private fun applyVolume(percent: Int) {
+        try {
+            val am = getSystemService(AudioManager::class.java)
+            val max = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+            if (savedAlarmVolume < 0) savedAlarmVolume = am.getStreamVolume(AudioManager.STREAM_ALARM)
+            val target = if (percent <= 0) 0 else maxOf(1, Math.round(max * percent / 100f))
+            am.setStreamVolume(AudioManager.STREAM_ALARM, target, 0)
+            player?.setVolume(if (percent <= 0) 0f else 1f, if (percent <= 0) 0f else 1f)
+        } catch (_: Exception) {}
+    }
+
+    private fun restoreVolume() {
+        if (savedAlarmVolume < 0) return
+        try { getSystemService(AudioManager::class.java).setStreamVolume(AudioManager.STREAM_ALARM, savedAlarmVolume, 0) } catch (_: Exception) {}
+        savedAlarmVolume = -1
+    }
+
     private fun requestFocus(attrs: AudioAttributes) {
         val am = getSystemService(AudioManager::class.java)
         val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
@@ -175,6 +195,7 @@ class AdhanService : Service() {
         sendBroadcast(Intent(AdhanActivity.ACTION_FINISHED).setPackage(packageName))
         handler.removeCallbacksAndMessages(null)
         stopPlayer()
+        restoreVolume()
         focusRequest?.let { getSystemService(AudioManager::class.java).abandonAudioFocusRequest(it) }
         stopForeground(STOP_FOREGROUND_REMOVE)
         Notifications.showAfterAdhan(this, prayer)
@@ -183,6 +204,7 @@ class AdhanService : Service() {
 
     override fun onDestroy() {
         playing = false
+        restoreVolume()
         handler.removeCallbacksAndMessages(null)
         stopPlayer()
         super.onDestroy()

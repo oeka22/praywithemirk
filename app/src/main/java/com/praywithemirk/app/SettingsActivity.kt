@@ -99,6 +99,8 @@ class SettingsActivity : Activity() {
             addView(radio(S.ringOptions.map { it[l] }, prefs.ringBig) { prefs.ringBig = it; render() })
             addView(switchRow(S.headerClock[l], prefs.headerClock) { prefs.headerClock = it }, lp(top = dp(10)))
             addView(switchRow(S.showSeconds[l], prefs.showSeconds) { prefs.showSeconds = it })
+            addView(label(S.mainScale[l]), lp(top = dp(10)))
+            addView(segmented(S.mainScales.map { it[l] }, prefs.mainScale) { prefs.mainScale = it; render() }, lp(top = dp(6)))
             addView(label(S.clockSize[l]), lp(top = dp(10)))
             addView(segmented(S.sizes.map { it[l] }, prefs.clockSize) { prefs.clockSize = it; render() }, lp(top = dp(6)))
         }, lp(top = dp(8)))
@@ -153,6 +155,51 @@ class SettingsActivity : Activity() {
             addView(row2, lp(top = dp(4)))
         }, lp(top = dp(8)))
 
+        // ---------------- Quelle der Gebetszeiten: Berechnung oder Moschee-Kalender
+        section(S.timeSource[l])
+        col.addView(card().apply {
+            addView(segmented(listOf(S.srcCalc[l], S.srcMosque[l]), if (prefs.useMosque) 1 else 0) { idx ->
+                prefs.useMosque = idx == 1; changed()
+            })
+            if (prefs.useMosque) {
+                addView(text(S.mosqueInfo[l], 13f, C.muted, Fonts.light), lp(top = dp(10)))
+                val cal = MosqueCalendar.load(this@SettingsActivity)
+                if (cal == null) addView(text(S.mosqueNone[l], 15f, C.gold, Fonts.medium), lp(top = dp(10)))
+                else {
+                    addView(text(S.mosqueCurrent[l].format(cal.name), 15f, C.gold, Fonts.medium), lp(top = dp(10)))
+                    val d = java.time.Instant.ofEpochMilli(cal.fetchedAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                    addView(text(S.mosqueUpdated[l].format(d.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))) , 12f, C.muted, Fonts.light))
+                    addView(text("↻ " + S.refresh[l], 13f, C.teal, Fonts.regular).apply {
+                        setPadding(0, dp(6), 0, dp(4))
+                        setOnClickListener { loadMosque(cal.url, cal.name) }
+                    })
+                }
+                for (p in MosqueCalendar.presets) {
+                    val sel = cal != null && cal.name == p.name
+                    addView(LinearLayout(this@SettingsActivity).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(dp(14), dp(10), dp(14), dp(10))
+                        background = roundRect(if (sel) C.goldSoft else Color.TRANSPARENT, dp(14).toFloat(), if (sel) C.gold else C.cardStroke, dp(1))
+                        addView(text((if (sel) "✓  " else "🕌  ") + p.name, 15f, if (sel) C.gold else C.cream, Fonts.regular))
+                        p.note?.let { addView(text(it[l], 12f, C.muted, Fonts.light), lp(top = dp(2))) }
+                        setOnClickListener { loadMosque(p.url, p.name) }
+                    }, lp(top = dp(8)))
+                }
+                addView(label(S.mosqueOther[l]), lp(top = dp(14)))
+                addView(text(S.mosqueLinkHint[l], 12f, C.muted, Fonts.light))
+                val row = LinearLayout(this@SettingsActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+                val input = edit("https://mawaqit.net/…", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
+                row.addView(input, LinearLayout.LayoutParams(0, -2, 1f))
+                row.addView(pill(S.ok[l]) {
+                    val u = input.text.toString().trim().let { Regex("https://\\S+").find(it)?.value ?: it }
+                    if (!MosqueCalendar.isMawaqitUrl(u)) Toast.makeText(this@SettingsActivity, S.mosqueOnlyMawaqit[l], Toast.LENGTH_LONG).show()
+                    else loadMosque(u, null)
+                }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(8) })
+                addView(row, lp(top = dp(6)))
+                addView(text(S.calcHiddenNote[l], 12f, C.faint, Fonts.italic), lp(top = dp(12)))
+            }
+        }, lp(top = dp(8)))
+
         // ---------------- Berechnung
         section(S.method[l])
         col.addView(card().apply {
@@ -189,9 +236,11 @@ class SettingsActivity : Activity() {
             addView(text(S.defaultForAll[l], 15f, C.gold, Fonts.medium), lp(top = dp(12)))
             addView(soundRow(-1, prefs.adhanName ?: S.defaultSound[l]), lp(top = dp(4)))
             addView(label(S.perPrayer[l]), lp(top = dp(16)))
+            addView(text(S.volumeInfo[l], 12f, C.muted, Fonts.light))
             for (i in P.SALAH) {
                 addView(text(S.prayerNames[i][l] + "   " + S.prayerArabic[i], 15f, C.gold, Fonts.medium), lp(top = dp(12)))
                 addView(soundRow(i, prefs.prayerName(i) ?: S.useDefault[l]), lp(top = dp(4)))
+                addView(stepper("🔊 " + S.volume[l] + " (%)", prefs.volume(i), 0, 100, 10) { v -> prefs.setVolume(i, v) }, lp(top = dp(4)))
             }
 
             addView(stepper(S.reminderBefore[l], prefs.reminderMinutes, 0, 60, 5) {
@@ -356,6 +405,19 @@ class SettingsActivity : Activity() {
     private fun changed() {
         AlarmScheduler.reschedule(this)
         render()
+    }
+
+    private fun loadMosque(url: String, name: String?) {
+        val l = prefs.lang
+        Toast.makeText(this, S.downloading[l], Toast.LENGTH_SHORT).show()
+        MosqueCalendar.fetch(this, url, name) { n ->
+            if (n == null) Toast.makeText(this, S.mosqueFailed[l], Toast.LENGTH_LONG).show()
+            else {
+                prefs.useMosque = true
+                Toast.makeText(this, S.mosqueLoaded[l].format(n), Toast.LENGTH_SHORT).show()
+            }
+            changed()
+        }
     }
 
     private fun addSourceDialog() {
@@ -601,7 +663,7 @@ class SettingsActivity : Activity() {
 
     private var pendingRecordSlot: Int? = null
 
-    /** Aufnahme-Dialog (max. 1 Minute). [assignSlot] = Gebet, dem die Aufnahme direkt zugewiesen wird (oder null). */
+    /** Aufnahme-Dialog (max. 3 Minuten). [assignSlot] = Gebet, dem die Aufnahme direkt zugewiesen wird (oder null). */
     private fun recordDialog(assignSlot: Int?) {
         val l = prefs.lang
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -615,7 +677,7 @@ class SettingsActivity : Activity() {
         var recorded = false
         val handler = android.os.Handler(android.os.Looper.getMainLooper())
 
-        val timer = text("0:00 / 1:00", 34f, C.cream, Fonts.light, Gravity.CENTER).apply { fontFeatureSettings = "tnum" }
+        val timer = text("0:00 / 3:00", 34f, C.cream, Fonts.light, Gravity.CENTER).apply { fontFeatureSettings = "tnum" }
         val status = text(S.recordHint[l], 13f, C.muted, Fonts.light, Gravity.CENTER)
         val name = edit(S.recordingName[l], InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES).apply { visibility = View.GONE }
         val btn = pill("●  " + S.startRecording[l], filled = true) {}
@@ -629,8 +691,8 @@ class SettingsActivity : Activity() {
         val tick = object : Runnable {
             override fun run() {
                 val ms = System.currentTimeMillis() - startAt
-                val sec = (ms / 1000).toInt().coerceAtMost(60)
-                timer.text = "%d:%02d / 1:00".format(sec / 60, sec % 60)
+                val sec = (ms / 1000).toInt().coerceAtMost(Recordings.MAX_MS / 1000)
+                timer.text = "%d:%02d / 3:00".format(sec / 60, sec % 60)
                 if (recorder != null) handler.postDelayed(this, 250)
             }
         }

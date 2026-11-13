@@ -235,9 +235,9 @@ object S {
     )
     val recordings = T("Eigene Aufnahmen", "Kendi kayıtlarım", "My recordings")
     val recordingsInfo = T(
-        "Nimm einen Gebetsruf über das Mikrofon auf (max. 1 Minute). Aufnahmen erscheinen bei „Auswählen“ in der Liste der Gebetsrufe.",
-        "Mikrofonla bir ezan kaydet (en fazla 1 dakika). Kayıtlar „Seç“ listesinde görünür.",
-        "Record an adhan with the microphone (max. 1 minute). Recordings appear in the list under “Choose”."
+        "Nimm einen Gebetsruf über das Mikrofon auf (max. 3 Minuten). Aufnahmen erscheinen bei „Auswählen“ in der Liste der Gebetsrufe.",
+        "Mikrofonla bir ezan kaydet (en fazla 3 dakika). Kayıtlar „Seç“ listesinde görünür.",
+        "Record an adhan with the microphone (max. 3 minutes). Recordings appear in the list under “Choose”."
     )
     val noRecordings = T("Noch keine Aufnahmen.", "Henüz kayıt yok.", "No recordings yet.")
     val newRecording = T("Neue Aufnahme", "Yeni kayıt", "New recording")
@@ -297,6 +297,46 @@ object S {
         "Kartları şöyle kullan: Metni kendin oku (okunuş telaffuza yardım eder) ve her tekrarda karta bir kez dokun. Sağ altta kaç kez olduğunu görürsün (örn. 0 / 33). Sayıya ulaşınca kart altın rengi olur ✓. Uzun basmak sıfırlar, üstteki „Sıfırla“ hepsini. Sesli okuma yapılmaz. Açıklamayı açıp kapatmak için bu kutuya dokun.",
         "How to use the cards: recite the text yourself (the transliteration helps with pronunciation) and tap the card once per repetition. Bottom right shows how many (e.g. 0 / 33). When reached, the card turns gold ✓. Long-press resets it, “Reset” at the top resets all. Nothing is read aloud. Tap this box to expand or collapse the explanation."
     )
+
+    // Moschee-Kalender
+    val timeSource = T("Woher kommen die Gebetszeiten?", "Namaz vakitleri nereden gelsin?", "Where do the prayer times come from?")
+    val srcCalc = T("Berechnen", "Hesapla", "Calculate")
+    val srcMosque = T("Kalender meiner Moschee", "Camimin takvimi", "My mosque's calendar")
+    val mosqueInfo = T(
+        "Übernimmt den Jahreskalender einer Moschee von ihrer Mawaqit-Seite – die Zeiten sind dann identisch mit der Mawaqit-App. Der Kalender wird gespeichert (funktioniert offline) und alle 14 Tage aktualisiert.",
+        "Bir caminin yıllık takvimini Mawaqit sayfasından alır – vakitler Mawaqit uygulamasıyla aynı olur. Takvim kaydedilir (çevrimdışı çalışır) ve 14 günde bir güncellenir.",
+        "Takes a mosque's yearly calendar from its Mawaqit page – the times are then identical to the Mawaqit app. The calendar is stored (works offline) and refreshed every 14 days."
+    )
+    val mosqueCurrent = T("Aktuell: %s", "Şu an: %s", "Current: %s")
+    val mosqueNone = T("Noch keine Moschee gewählt.", "Henüz cami seçilmedi.", "No mosque selected yet.")
+    val mosqueUpdated = T("aktualisiert am %s", "%s tarihinde güncellendi", "updated on %s")
+    val mosqueOther = T("Andere Moschee: Mawaqit-Link einfügen", "Başka cami: Mawaqit bağlantısı yapıştır", "Other mosque: paste Mawaqit link")
+    val mosqueLinkHint = T(
+        "In der Mawaqit-App die Moschee öffnen › Teilen › Link kopieren, oder auf mawaqit.net suchen.",
+        "Mawaqit uygulamasında camiyi aç › Paylaş › Bağlantıyı kopyala ya da mawaqit.net'te ara.",
+        "Open the mosque in the Mawaqit app › Share › copy link, or search on mawaqit.net."
+    )
+    val mosqueLoaded = T("Kalender übernommen: %s", "Takvim alındı: %s", "Calendar loaded: %s")
+    val mosqueFailed = T(
+        "Kalender konnte nicht geladen werden. Ist es ein Mawaqit-Link und besteht eine Internetverbindung?",
+        "Takvim yüklenemedi. Bu bir Mawaqit bağlantısı mı ve internet var mı?",
+        "Could not load the calendar. Is it a Mawaqit link and is there an internet connection?"
+    )
+    val mosqueOnlyMawaqit = T("Bitte einen Link von mawaqit.net verwenden.", "Lütfen mawaqit.net bağlantısı kullanın.", "Please use a link from mawaqit.net.")
+    val calcHiddenNote = T(
+        "Methode, Asr und Korrekturen gelten nur beim Berechnen. Im Moschee-Modus werden die Zeiten der Moschee 1:1 übernommen.",
+        "Yöntem, ikindi ve düzeltmeler yalnızca hesaplamada geçerlidir. Cami modunda caminin vakitleri aynen alınır.",
+        "Method, Asr and adjustments only apply when calculating. In mosque mode the mosque's times are used 1:1."
+    )
+
+    val volume = T("Lautstärke", "Ses seviyesi", "Volume")
+    val volumeInfo = T(
+        "Lautstärke je Gebet in Prozent der maximalen Wecker-Lautstärke. Während des Gebetsrufs stellt die App die Wecker-Lautstärke darauf ein und danach wieder zurück. 0 % = nur Bildschirm, kein Ton.",
+        "Her vakit için azami alarm sesinin yüzdesi. Ezan sırasında uygulama alarm sesini buna ayarlar ve sonra geri alır. %0 = yalnızca ekran, ses yok.",
+        "Volume per prayer as a percentage of the maximum alarm volume. During the adhan the app sets the alarm volume accordingly and restores it afterwards. 0 % = screen only, no sound."
+    )
+    val mainScale = T("Schriftgröße Startseite", "Ana ekran yazı boyutu", "Main screen text size")
+    val mainScales = arrayOf(T("Normal", "Normal", "Normal"), T("Groß", "Büyük", "Large"), T("Sehr groß", "Çok büyük", "Very large"))
 
     val weekdays = arrayOf(
         T("Montag", "Pazartesi", "Monday"), T("Dienstag", "Salı", "Tuesday"),

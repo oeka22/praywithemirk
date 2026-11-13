@@ -8,6 +8,7 @@ import java.time.ZonedDateTime
 
 /** Alle Einstellungen der App (SharedPreferences). */
 class Prefs(context: Context) {
+    private val appCtx: Context = context.applicationContext
     private val sp: SharedPreferences =
         context.applicationContext.getSharedPreferences("praywithemirk", Context.MODE_PRIVATE)
 
@@ -70,6 +71,16 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("adhkar_help", true)
         set(v) = sp.edit().putBoolean("adhkar_help", v).apply()
 
+    /** Lautstärke des Gebetsrufs je Gebet in Prozent (0–100) der maximalen Wecker-Lautstärke. */
+    fun volume(i: Int): Int = sp.getInt("volume_$i", 80)
+    fun setVolume(i: Int, v: Int) = sp.edit().putInt("volume_$i", v.coerceIn(0, 100)).apply()
+
+    /** Schriftgröße der Startseite: 0 = normal, 1 = groß (Standard), 2 = sehr groß. */
+    var mainScale: Int
+        get() = sp.getInt("main_scale", 1)
+        set(v) = sp.edit().putInt("main_scale", v).apply()
+    val mainFactor: Float get() = floatArrayOf(1f, 1.3f, 1.6f)[mainScale.coerceIn(0, 2)]
+
     var style: AppStyle
         get() = AppStyle.byId(sp.getString("style", AppStyle.CLASSIC.id))
         set(v) = sp.edit().putString("style", v.id).apply()
@@ -124,6 +135,14 @@ class Prefs(context: Context) {
     fun calcParams() = CalcParams(method, hanafiAsr, highLat, IntArray(6) { offset(it) })
 
     /** Gebetszeiten für ein Datum in der Gerätezeitzone. */
-    fun timesFor(date: LocalDate, zone: ZoneId = ZoneId.systemDefault()): List<ZonedDateTime> =
-        PrayTimes.compute(date, lat, lng, zone, calcParams())
+    /** true = Zeiten aus dem Kalender einer Moschee (Mawaqit) statt Berechnung. */
+    var useMosque: Boolean
+        get() = sp.getBoolean("use_mosque", false)
+        set(v) = sp.edit().putBoolean("use_mosque", v).apply()
+
+    /** Gebetszeiten für ein Datum: Moschee-Kalender (falls gewählt und vorhanden), sonst Berechnung. */
+    fun timesFor(date: LocalDate, zone: ZoneId = ZoneId.systemDefault()): List<ZonedDateTime> {
+        if (useMosque) MosqueCalendar.timesFor(appCtx, date, zone)?.let { return it }
+        return PrayTimes.compute(date, lat, lng, zone, calcParams())
+    }
 }

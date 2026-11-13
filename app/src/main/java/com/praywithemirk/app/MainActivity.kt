@@ -57,6 +57,7 @@ class MainActivity : Activity() {
     private var builtKey: String = ""
     private var wide = false
     private var ringDp = 160f
+    private var fs = 1.3f
     private var prevEvent: PrayerEvent? = null
     private var nextEvent: PrayerEvent? = null
     private var impulseKey: String = ""
@@ -86,6 +87,7 @@ class MainActivity : Activity() {
         AlarmScheduler.reschedule(this)
         if (prefs.autoLocation && prefs.hasLocation && LocationHelper.hasPermission(this)) autoLocate()
         CustomSources.refreshStale(this)
+        if (prefs.useMosque) MosqueCalendar.refreshIfStale(this)
         handler.removeCallbacks(tick)
         handler.post(tick)
     }
@@ -101,7 +103,7 @@ class MainActivity : Activity() {
         refreshAll()
     }
 
-    private fun uiKey() = "${prefs.lang.id}|${prefs.theme.id}|${prefs.style.id}|${resources.configuration.screenWidthDp}|${prefs.ringBig}|${prefs.headerClock}|${prefs.clockSize}"
+    private fun uiKey() = "${prefs.lang.id}|${prefs.theme.id}|${prefs.style.id}|${resources.configuration.screenWidthDp}|${prefs.ringBig}|${prefs.headerClock}|${prefs.clockSize}|${prefs.mainScale}|${resources.configuration.screenHeightDp}"
 
     // ---------------------------------------------------------------- Aufbau
 
@@ -112,9 +114,12 @@ class MainActivity : Activity() {
         impulseKey = ""
 
         val screenDp = resources.configuration.screenWidthDp.toFloat()
+        val screenH = resources.configuration.screenHeightDp.toFloat()
         wide = screenDp >= 600f
+        fs = prefs.mainFactor
         val avail = screenDp - 40f
-        ringDp = if (wide) minOf(avail * 0.40f, 420f) else avail * 0.50f
+        // Ring so groß wie möglich: im Querformat/Tablet nach Bildschirmhöhe, im Hochformat gut die Hälfte der Breite
+        ringDp = if (wide) minOf(screenH * 0.62f, avail * 0.46f) else avail * 0.54f
 
         val root = FrameLayout(this)
         root.addView(PatternBackground(this), FrameLayout.LayoutParams(-1, -1))
@@ -136,23 +141,23 @@ class MainActivity : Activity() {
         val center = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            val pad = dp(ringDp * 0.11f)
+            val pad = dp(ringDp * 0.09f)
             setPadding(pad, pad, pad, pad)
         }
         val k = ringDp / 160f // Skalierung der Schrift mit der Ringgröße
-        nextName = text("", 16f * k, C.gold, Fonts.medium, Gravity.CENTER).apply { maxLines = 1 }
-        nextArabic = text("", 13f * k, C.muted, Fonts.serif, Gravity.CENTER).apply { maxLines = 1 }
+        nextName = text("", 19f * k, C.gold, Fonts.bold, Gravity.CENTER).apply { maxLines = 1 }
+        nextArabic = text("", 14f * k, C.muted, Fonts.serif, Gravity.CENTER).apply { maxLines = 1 }
         // großer Wert (Standard: Countdown) – passt sich automatisch der Breite an
-        bigValue = text("", 34f * k, C.cream, Fonts.light, Gravity.CENTER).apply {
+        bigValue = text("", 40f * k, C.cream, Fonts.medium, Gravity.CENTER).apply {
             includeFontPadding = false
             fontFeatureSettings = "tnum"
             maxLines = 1
-            setAutoSizeTextTypeUniformWithConfiguration(10, (40f * k).toInt().coerceAtLeast(12), 1, android.util.TypedValue.COMPLEX_UNIT_SP)
+            setAutoSizeTextTypeUniformWithConfiguration(10, (48f * k).toInt().coerceAtLeast(12), 1, android.util.TypedValue.COMPLEX_UNIT_SP)
         }
-        smallValue = text("", 15f * k, C.muted, Fonts.regular, Gravity.CENTER).apply { fontFeatureSettings = "tnum"; maxLines = 1 }
+        smallValue = text("", 17f * k, C.cream, Fonts.medium, Gravity.CENTER).apply { fontFeatureSettings = "tnum"; maxLines = 1 }
         center.addView(nextName)
         center.addView(nextArabic)
-        center.addView(bigValue, LinearLayout.LayoutParams(-1, dp(46 * k)).apply { topMargin = dp(4 * k) })
+        center.addView(bigValue, LinearLayout.LayoutParams(-1, dp(54 * k)).apply { topMargin = dp(2 * k) })
         center.addView(smallValue, lp(top = dp(4 * k)))
         ringFrame.addView(center, FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
         main.addView(ringFrame, LinearLayout.LayoutParams(dp(ringDp), dp(ringDp)))
@@ -161,15 +166,15 @@ class MainActivity : Activity() {
 
         // Kopfzeile rechts: Ort/Datum (bündig mit dem Impuls-Rahmen) und daneben die Uhrzeit
         val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.TOP }
-        val ts = if (wide) 1f else 0.85f
-        placeView = text("", 13f * ts, C.gold, Fonts.medium).apply { letterSpacing = 0.06f; maxLines = 2 }
-        dateView = text("", 13f * ts, C.cream, Fonts.light).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END }
-        hijriView = text("", 12f * ts, C.muted, Fonts.light).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END }
+        val ts = (if (wide) 1.25f else 0.85f) * fs
+        placeView = text("", 13f * ts, C.gold, Fonts.bold).apply { letterSpacing = 0.05f; maxLines = 2 }
+        dateView = text("", 13f * ts, C.cream, Fonts.regular).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END }
+        hijriView = text("", 12f * ts, C.muted, Fonts.regular).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END }
         // Ort links neben der Uhrzeit; Datum und Hijri-Datum darunter über die ganze Breite
         header.addView(placeView, LinearLayout.LayoutParams(0, -2, 1f))
 
-        val clockSizes = if (wide) floatArrayOf(34f, 46f, 62f) else floatArrayOf(22f, 28f, 36f)
-        clockView = text("", clockSizes[prefs.clockSize.coerceIn(0, 2)], C.cream, Fonts.thin, Gravity.END).apply {
+        val clockSizes = if (wide) floatArrayOf(40f, 56f, 76f) else floatArrayOf(24f, 30f, 38f)
+        clockView = text("", clockSizes[prefs.clockSize.coerceIn(0, 2)] * fs.coerceAtMost(1.3f), C.cream, Fonts.medium, Gravity.END).apply {
             includeFontPadding = false
             fontFeatureSettings = "tnum"
             maxLines = 1
@@ -196,8 +201,8 @@ class MainActivity : Activity() {
         val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         fun action(symbol: String, label: String, onClick: () -> Unit) = card(12).apply {
             gravity = Gravity.CENTER_HORIZONTAL
-            addView(text(symbol, 20f, C.gold, Fonts.regular, Gravity.CENTER))
-            addView(text(label, 13f, C.cream, Fonts.regular, Gravity.CENTER).apply { maxLines = 2 }, lp(top = dp(4)))
+            addView(text(symbol, 20f * fs, C.gold, Fonts.regular, Gravity.CENTER))
+            addView(text(label, 13f * fs, C.cream, Fonts.medium, Gravity.CENTER).apply { maxLines = 2 }, lp(top = dp(4)))
             clickableRipple(dp(20).toFloat())
             setOnClickListener { onClick() }
         }
@@ -239,7 +244,8 @@ class MainActivity : Activity() {
 
         // auf schmalen Bildschirmen nur die Stadt, damit neben der Uhr genug Platz bleibt
         val place = if (wide) prefs.place else prefs.place.substringBefore(",").trim()
-        placeView.text = (place.ifBlank { "%.2f°, %.2f°".format(prefs.lat, prefs.lng) }).uppercase()
+        val mosque = if (prefs.useMosque) MosqueCalendar.load(this)?.name else null
+        placeView.text = (mosque ?: place.ifBlank { "%.2f°, %.2f°".format(prefs.lat, prefs.lng) }).uppercase()
         dateView.text = S.gregorian(now.toLocalDate(), l)
         hijriView.text = S.hijri(now.toLocalDate(), prefs.hijriOffset, l)
 
@@ -324,9 +330,9 @@ class MainActivity : Activity() {
                     gravity = Gravity.CENTER_HORIZONTAL
                     if (isCurrent) foreground = rowHighlight().also { it.alpha = 255 }
                 }
-                tile.addView(text(S.prayerNames[i][l], 14f, nameColor, Fonts.medium, Gravity.CENTER).apply { maxLines = 1 })
-                tile.addView(text(S.prayerArabic[i], 13f, C.faint, Fonts.serif, Gravity.CENTER))
-                tile.addView(text(times[i].format(hhmm), 26f, nameColor, Fonts.light, Gravity.CENTER).apply { fontFeatureSettings = "tnum" })
+                tile.addView(text(S.prayerNames[i][l], 16f * fs, nameColor, Fonts.bold, Gravity.CENTER).apply { maxLines = 1 })
+                tile.addView(text(S.prayerArabic[i], 14f * fs, C.muted, Fonts.serif, Gravity.CENTER))
+                tile.addView(text(times[i].format(hhmm), 30f * fs, nameColor, Fonts.medium, Gravity.CENTER).apply { fontFeatureSettings = "tnum"; maxLines = 1 })
                 tile.addView(bellView(i), LinearLayout.LayoutParams(dp(36), dp(32)))
                 if (i != P.SUNRISE) tile.setOnClickListener { openGuide(i) }
                 listBox.addView(tile, LinearLayout.LayoutParams(0, -2, 1f).apply { if (i > 0) leftMargin = dp(8) })
@@ -338,11 +344,11 @@ class MainActivity : Activity() {
                     if (isCurrent) background = rowHighlight()
                 }
                 val names = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-                names.addView(text(S.prayerNames[i][l], 16f, nameColor, if (isCurrent) Fonts.medium else Fonts.regular))
-                names.addView(text(S.prayerArabic[i], 14f, C.faint, Fonts.serif), LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(10) })
+                names.addView(text(S.prayerNames[i][l], 16f * fs, nameColor, if (isCurrent) Fonts.bold else Fonts.medium).apply { maxLines = 1 })
+                names.addView(text(S.prayerArabic[i], 14f * fs, C.muted, Fonts.serif), LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(10) })
                 if (i == next) names.addView(text("•", 18f, C.gold, Fonts.medium), LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(8) })
                 row.addView(names, LinearLayout.LayoutParams(0, -2, 1f))
-                row.addView(text(times[i].format(hhmm), 19f, nameColor, Fonts.light).apply { fontFeatureSettings = "tnum" })
+                row.addView(text(times[i].format(hhmm), 20f * fs, nameColor, Fonts.medium).apply { fontFeatureSettings = "tnum" })
                 row.addView(bellView(i), LinearLayout.LayoutParams(dp(40), dp(36)))
                 if (i != P.SUNRISE) row.setOnClickListener { openGuide(i) }
                 listBox.addView(row)
@@ -358,10 +364,11 @@ class MainActivity : Activity() {
         if (key == impulseKey) return
         impulseKey = key
 
-        val s = if (wide) 1f else 0.82f // auf schmalen Bildschirmen kompakter
+        // Wanduhr/Tablet: Schrift wächst mit dem Platz; Handy hochkant: etwas kompakter (wenig Breite neben dem Ring)
+        val s = if (wide) (ringDp / 260f).coerceIn(1.2f, 2.0f) * fs.coerceAtMost(1.3f) else 0.85f * fs.coerceAtMost(1.2f)
         impulseBox.removeAllViews()
         impulseBox.addView(
-            text((if (evening) S.eveningImpulse[l] else S.morningImpulse[l]).uppercase(), 10f, C.gold, Fonts.medium)
+            text((if (evening) S.eveningImpulse[l] else S.morningImpulse[l]).uppercase(), 10f * s, C.gold, Fonts.bold)
                 .apply { letterSpacing = 0.14f }
         )
         if (item == null) {
@@ -369,7 +376,7 @@ class MainActivity : Activity() {
             return
         }
         impulseBox.addView(
-            text(item.title[l], 15f * s, C.cream, Fonts.medium),
+            text(item.title[l], 15f * s, C.cream, Fonts.bold),
             lp(top = dp(6))
         )
         if (item.arabic.isNotBlank()) impulseBox.addView(arabic(item.arabic, 21f * s), lp(top = dp(8)))
@@ -377,8 +384,8 @@ class MainActivity : Activity() {
             impulseBox.addView(text(item.translit, 13f * s, C.teal, Fonts.italic), lp(top = dp(8)))
         }
         impulseBox.addView(divider())
-        impulseBox.addView(text(item.meaning[l], 15f * s, C.cream, Fonts.light))
-        impulseBox.addView(text("— " + item.source, 11f, C.muted, Fonts.regular, Gravity.END), lp(top = dp(8)))
+        impulseBox.addView(text(item.meaning[l], 15f * s, C.cream, Fonts.regular))
+        impulseBox.addView(text("— " + item.source, 11f * s, C.muted, Fonts.medium, Gravity.END), lp(top = dp(8)))
     }
 
     private fun onTick() {

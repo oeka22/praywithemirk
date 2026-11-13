@@ -126,6 +126,7 @@ object Fonts {
     val thin: Typeface = Typeface.create("sans-serif-thin", Typeface.NORMAL)
     val regular: Typeface = Typeface.create("sans-serif", Typeface.NORMAL)
     val medium: Typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+    val bold: Typeface = Typeface.create("sans-serif", Typeface.BOLD)
     val serif: Typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
     val italic: Typeface = Typeface.create("sans-serif-light", Typeface.ITALIC)
 }
@@ -388,7 +389,7 @@ class RingView(context: Context) : View(context) {
     var progress: Float = 0f
         set(v) { field = v.coerceIn(0f, 1f); invalidate() }
 
-    private val stroke = context.dp(6f).toFloat()
+    private var stroke = context.dp(6f).toFloat()
     private val track = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE; strokeWidth = stroke; color = alpha(C.cream, 30)
     }
@@ -403,6 +404,10 @@ class RingView(context: Context) : View(context) {
     private val oval = RectF()
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        // Strichstärke wächst mit der Ringgröße (gut lesbar als Wanduhr)
+        stroke = maxOf(context.dp(6f).toFloat(), min(w, h) * 0.035f)
+        track.strokeWidth = stroke; arc.strokeWidth = stroke
+        ticks.strokeWidth = maxOf(context.dp(1f).toFloat(), stroke * 0.2f)
         val pad = stroke * 2.2f
         val s = min(w, h).toFloat()
         val l = (w - s) / 2 + pad
