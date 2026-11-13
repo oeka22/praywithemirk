@@ -46,6 +46,8 @@ class MainActivity : Activity() {
     private lateinit var hijriView: TextView
     private lateinit var clockView: TextView
     private lateinit var ring: RingView
+    private var art: HeroArtView? = null
+    private var artTimes = floatArrayOf(5.6f, 7.5f, 12.1f, 14.1f, 16.5f, 18.3f)
     private lateinit var nextName: TextView
     private lateinit var nextArabic: TextView
     private lateinit var bigValue: TextView
@@ -103,7 +105,7 @@ class MainActivity : Activity() {
         refreshAll()
     }
 
-    private fun uiKey() = "${prefs.lang.id}|${prefs.theme.id}|${prefs.style.id}|${resources.configuration.screenWidthDp}|${prefs.ringBig}|${prefs.headerClock}|${prefs.clockSize}|${prefs.mainScale}|${resources.configuration.screenHeightDp}"
+    private fun uiKey() = "${prefs.lang.id}|${prefs.theme.id}|${prefs.style.id}|${prefs.skin}|${resources.configuration.screenWidthDp}|${prefs.ringBig}|${prefs.headerClock}|${prefs.clockSize}|${prefs.mainScale}|${resources.configuration.screenHeightDp}"
 
     // ---------------------------------------------------------------- Aufbau
 
@@ -136,28 +138,76 @@ class MainActivity : Activity() {
         val main = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.TOP }
 
         val ringFrame = FrameLayout(this)
+        val skin = C.skin
         ring = RingView(this)
-        ringFrame.addView(ring, FrameLayout.LayoutParams(-1, -1))
+        art = null
+        if (skin == null) ringFrame.addView(ring, FrameLayout.LayoutParams(-1, -1))
+        else art = HeroArtView(this, skin).also { it.times = artTimes; ringFrame.addView(it, FrameLayout.LayoutParams(-1, -1)) }
+        val hero = skin?.hero ?: Hero.RING
+        // Innenabstände je Grafik (wo der Text sitzen soll), als Anteil der Größe: links, oben, rechts, unten
+        val pads = when (hero) {
+            Hero.ARCH -> floatArrayOf(0.14f, 0.24f, 0.14f, 0.2f)
+            Hero.LANTERN -> floatArrayOf(0.27f, 0.22f, 0.27f, 0.16f)
+            Hero.MOON -> floatArrayOf(0.06f, 0.1f, 0.4f, 0.1f)
+            Hero.DISC -> floatArrayOf(0.16f, 0.16f, 0.16f, 0.16f)
+            Hero.DIAL24 -> floatArrayOf(0.3f, 0.3f, 0.3f, 0.3f)
+            Hero.SUNARC -> floatArrayOf(0.03f, 0.62f, 0.03f, 0.02f)
+            Hero.FRAME -> floatArrayOf(0.1f, 0.08f, 0.1f, 0.18f)
+            Hero.TYPO -> floatArrayOf(0.04f, 0.04f, 0.02f, 0.16f)
+            Hero.SOFT -> floatArrayOf(0.04f, 0.04f, 0.04f, 0.18f)
+            Hero.FLAP -> floatArrayOf(0.07f, 0.07f, 0.07f, 0.07f)
+            else -> floatArrayOf(0.09f, 0.09f, 0.09f, 0.09f)
+        }
+        // Schriftgrößen-Faktoren je Grafik: Name, Arabisch, großer Wert, kleiner Wert
+        val mul = when (hero) {
+            Hero.DIAL24 -> floatArrayOf(0.7f, 0.7f, 0.55f, 0.7f)
+            Hero.SUNARC -> floatArrayOf(0.8f, 0.8f, 0.85f, 0.8f)
+            Hero.MOON -> floatArrayOf(0.9f, 0.9f, 0.75f, 0.85f)
+            Hero.LANTERN -> floatArrayOf(0.85f, 0.8f, 0.72f, 0.8f)
+            Hero.ARCH -> floatArrayOf(0.9f, 1.3f, 0.85f, 0.85f)
+            Hero.TYPO -> floatArrayOf(1.1f, 1f, 1.3f, 0.95f)
+            Hero.KISWA -> floatArrayOf(0.75f, 2.1f, 0.95f, 0.85f)
+            Hero.SOFT -> floatArrayOf(1f, 1f, 1.1f, 0.9f)
+            else -> floatArrayOf(1f, 1f, 1f, 1f)
+        }
+        val fg = skin?.let { col(it.heroFg) } ?: C.cream
+        val nameColor = when {
+            skin == null -> C.gold
+            hero == Hero.ARCH || hero == Hero.SOFT || hero == Hero.FLAP -> col(skin.alt)
+            hero == Hero.MOON || hero == Hero.DIAL24 -> C.teal
+            hero == Hero.KISWA -> C.gold
+            else -> fg
+        }
         val center = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            val pad = dp(ringDp * 0.09f)
-            setPadding(pad, pad, pad, pad)
+            gravity = if (hero == Hero.TYPO) Gravity.START or Gravity.CENTER_VERTICAL else Gravity.CENTER
+            setPadding(dp(ringDp * pads[0]), dp(ringDp * pads[1]), dp(ringDp * pads[2]), dp(ringDp * pads[3]))
         }
         val k = ringDp / 160f // Skalierung der Schrift mit der Ringgröße
-        nextName = text("", 19f * k, C.gold, Fonts.bold, Gravity.CENTER).apply { maxLines = 1 }
-        nextArabic = text("", 14f * k, C.muted, Fonts.serif, Gravity.CENTER).apply { maxLines = 1 }
+        val align = if (hero == Hero.TYPO) Gravity.START else Gravity.CENTER
+        nextName = text("", 19f * k * mul[0], nameColor, if (skin == null) Fonts.bold else SkinFonts.nameBold(), align).apply {
+            maxLines = 1
+            if (hero == Hero.KISWA) letterSpacing = 0.35f
+            if (hero == Hero.FLAP) { background = roundRect(col("#222222"), dp(4).toFloat()); setPadding(dp(8), 0, dp(8), 0); letterSpacing = 0.2f }
+        }
+        nextArabic = text("", 14f * k * mul[1], if (hero == Hero.KISWA || hero == Hero.ARCH) col(skin!!.alt) else alpha(fg, 170), Fonts.serif, align).apply {
+            maxLines = 1
+            if (hero == Hero.TYPO || hero == Hero.FLAP) visibility = View.GONE
+        }
         // großer Wert (Standard: Countdown) – passt sich automatisch der Breite an
-        bigValue = text("", 40f * k, C.cream, Fonts.medium, Gravity.CENTER).apply {
+        bigValue = text("", 40f * k * mul[2], fg, if (skin == null) Fonts.medium else SkinFonts.digits(), align).apply {
             includeFontPadding = false
             fontFeatureSettings = "tnum"
             maxLines = 1
-            setAutoSizeTextTypeUniformWithConfiguration(10, (48f * k).toInt().coerceAtLeast(12), 1, android.util.TypedValue.COMPLEX_UNIT_SP)
+            setAutoSizeTextTypeUniformWithConfiguration(10, (48f * k * mul[2]).toInt().coerceAtLeast(12), 1, android.util.TypedValue.COMPLEX_UNIT_SP)
+            if (hero == Hero.FLAP) { background = roundRect(col("#222222"), dp(6).toFloat()); letterSpacing = 0.12f }
+            if (hero == Hero.SOFT && skin != null) setShadowLayer(dp(14).toFloat(), 0f, 0f, alpha(col(skin.alt), 120))
         }
-        smallValue = text("", 17f * k, C.cream, Fonts.medium, Gravity.CENTER).apply { fontFeatureSettings = "tnum"; maxLines = 1 }
-        center.addView(nextName)
-        center.addView(nextArabic)
-        center.addView(bigValue, LinearLayout.LayoutParams(-1, dp(54 * k)).apply { topMargin = dp(2 * k) })
+        smallValue = text("", 17f * k * mul[3], if (skin == null) C.cream else alpha(fg, 200), if (skin == null) Fonts.medium else SkinFonts.name(), align).apply {
+            fontFeatureSettings = "tnum"; maxLines = 1
+        }
+        if (hero == Hero.KISWA) { center.addView(nextArabic); center.addView(nextName) } else { center.addView(nextName); center.addView(nextArabic) }
+        center.addView(bigValue, LinearLayout.LayoutParams(-1, dp(54 * k * mul[2])).apply { topMargin = dp(2 * k) })
         center.addView(smallValue, lp(top = dp(4 * k)))
         ringFrame.addView(center, FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
         main.addView(ringFrame, LinearLayout.LayoutParams(dp(ringDp), dp(ringDp)))
@@ -318,7 +368,13 @@ class MainActivity : Activity() {
             }
             if (wide) {
                 // Kacheln nebeneinander (Tablet / Querformat)
-                val tile = if (C.style == AppStyle.CLASSIC) LinearLayout(this).apply {
+                val sk = C.skin
+                val tile = if (sk != null) LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER_HORIZONTAL
+                    setPadding(dp(6), dp(if (sk.list == ListStyle.ARCH_TILES) 22 else 12), dp(6), dp(6))
+                    background = skinTile(sk, isCurrent, i == next)
+                } else if (C.style == AppStyle.CLASSIC) LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER_HORIZONTAL
                     setPadding(dp(6), dp(12), dp(6), dp(6))
@@ -330,9 +386,9 @@ class MainActivity : Activity() {
                     gravity = Gravity.CENTER_HORIZONTAL
                     if (isCurrent) foreground = rowHighlight().also { it.alpha = 255 }
                 }
-                tile.addView(text(S.prayerNames[i][l], 16f * fs, nameColor, Fonts.bold, Gravity.CENTER).apply { maxLines = 1 })
+                tile.addView(text(S.prayerNames[i][l], 16f * fs, nameColor, if (C.skin != null) SkinFonts.nameBold() else Fonts.bold, Gravity.CENTER).apply { maxLines = 1 })
                 tile.addView(text(S.prayerArabic[i], 14f * fs, C.muted, Fonts.serif, Gravity.CENTER))
-                tile.addView(text(times[i].format(hhmm), 30f * fs, nameColor, Fonts.medium, Gravity.CENTER).apply { fontFeatureSettings = "tnum"; maxLines = 1 })
+                tile.addView(text(times[i].format(hhmm), 30f * fs, nameColor, if (C.skin != null) SkinFonts.digits() else Fonts.medium, Gravity.CENTER).apply { fontFeatureSettings = "tnum"; maxLines = 1 })
                 tile.addView(bellView(i), LinearLayout.LayoutParams(dp(36), dp(32)))
                 if (i != P.SUNRISE) tile.setOnClickListener { openGuide(i) }
                 listBox.addView(tile, LinearLayout.LayoutParams(0, -2, 1f).apply { if (i > 0) leftMargin = dp(8) })
@@ -342,16 +398,39 @@ class MainActivity : Activity() {
                     gravity = Gravity.CENTER_VERTICAL
                     setPadding(dp(14), dp(10), dp(6), dp(10))
                     if (isCurrent) background = rowHighlight()
+                    C.skin?.let { sk -> if (sk.list != ListStyle.ROWS) { background = skinTile(sk, isCurrent, i == next, small = true) } }
                 }
                 val names = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-                names.addView(text(S.prayerNames[i][l], 16f * fs, nameColor, if (isCurrent) Fonts.bold else Fonts.medium).apply { maxLines = 1 })
+                names.addView(text(S.prayerNames[i][l], 16f * fs, nameColor, if (C.skin != null) (if (isCurrent) SkinFonts.nameBold() else SkinFonts.name()) else if (isCurrent) Fonts.bold else Fonts.medium).apply { maxLines = 1 })
                 names.addView(text(S.prayerArabic[i], 14f * fs, C.muted, Fonts.serif), LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(10) })
                 if (i == next) names.addView(text("•", 18f, C.gold, Fonts.medium), LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(8) })
                 row.addView(names, LinearLayout.LayoutParams(0, -2, 1f))
-                row.addView(text(times[i].format(hhmm), 20f * fs, nameColor, Fonts.medium).apply { fontFeatureSettings = "tnum" })
+                row.addView(text(times[i].format(hhmm), 20f * fs, nameColor, if (C.skin != null) SkinFonts.digits() else Fonts.medium).apply { fontFeatureSettings = "tnum" })
                 row.addView(bellView(i), LinearLayout.LayoutParams(dp(40), dp(36)))
                 if (i != P.SUNRISE) row.setOnClickListener { openGuide(i) }
-                listBox.addView(row)
+                listBox.addView(row, lp().apply { if (C.skin != null && C.skin!!.list != ListStyle.ROWS && i > 0) topMargin = dp(5) })
+            }
+        }
+    }
+
+    /** Kachel-Hintergrund je Design-Skin: Bogen oben, Fallblatt, Kachel mit harter Kante oder ruhige Fläche. */
+    private fun skinTile(sk: Skin, current: Boolean, next: Boolean, small: Boolean = false): android.graphics.drawable.Drawable {
+        val fill = when {
+            sk.list == ListStyle.FLAP -> if (current) col("#2E2A22") else col("#1E1E1E")
+            current -> C.goldSoft
+            else -> C.card
+        }
+        val stroke = if (next || current) C.gold else C.cardStroke
+        return android.graphics.drawable.GradientDrawable().apply {
+            setColor(fill)
+            setStroke(dp(if (next) 2 else 1), stroke)
+            val r = dp(if (small) 10 else 14).toFloat()
+            cornerRadii = when (sk.list) {
+                ListStyle.ARCH_TILES -> if (small) floatArrayOf(r * 2, r * 2, r, r, r, r, r * 2, r * 2)
+                    else { val a = dp(60).toFloat(); floatArrayOf(a, a, a, a, r / 2, r / 2, r / 2, r / 2) }
+                ListStyle.FLAP -> FloatArray(8) { dp(4).toFloat() }
+                ListStyle.TILES -> FloatArray(8) { if (sk.id == "zellige") dp(2).toFloat() else r }
+                else -> FloatArray(8) { r }
             }
         }
     }
@@ -421,6 +500,15 @@ class MainActivity : Activity() {
         val total = Duration.between(prev.time, next.time).seconds.coerceAtLeast(1)
         val done = Duration.between(prev.time, now).seconds
         ring.progress = done.toFloat() / total
+        art?.let { a ->
+            a.progress = done.toFloat() / total
+            a.nowHour = now.hour + now.minute / 60f + now.second / 3600f
+            a.nextIndex = next.prayer
+            if (now.second == 0 || a.times === artTimes) {
+                val t = prefs.timesFor(now.toLocalDate(), now.zone)
+                a.times = FloatArray(6) { t[it].hour + t[it].minute / 60f }
+            }
+        }
 
         if (now.second == 0) {
             dateView.text = S.gregorian(now.toLocalDate(), l)

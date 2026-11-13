@@ -126,6 +126,23 @@ object S {
 
     // Neu: Designs, Quellen, Audio-Links
     val design = T("Design", "Tasarım", "Design")
+    val designPage = T("Designs", "Tasarımlar", "Designs")
+    val designIntro = T(
+        "Tippe auf eine Vorschau, um das Design zu übernehmen. Alle Funktionen bleiben in jedem Design gleich.",
+        "Tasarımı uygulamak için bir önizlemeye dokunun. Tüm işlevler her tasarımda aynı kalır.",
+        "Tap a preview to apply the design. All functions stay the same in every design."
+    )
+    val chooseDesign = T("Alle Designs ansehen ›", "Tüm tasarımları gör ›", "Browse all designs ›")
+    val currentDesign = T("Aktuelles Design", "Geçerli tasarım", "Current design")
+    val classicDesign = T("Klassisch", "Klasik", "Classic")
+    val classicDesc = T(
+        "Das bisherige Design mit Ring – mit 5 Farben und 4 Stilen.",
+        "Halkalı önceki tasarım – 5 renk ve 4 stil ile.",
+        "The original ring design – with 5 colours and 4 styles."
+    )
+    val newDesigns = T("Neue Designs", "Yeni tasarımlar", "New designs")
+    val active = T("aktiv", "etkin", "active")
+    val colors = T("Farben", "Renkler", "Colours")
     val sources = T("Quellen", "Kaynaklar", "Sources")
     val sourcesInfo = T(
         "Deaktivierte Quellen werden nicht mehr für Tagesimpulse und Adhkar verwendet. Ein Inhalt bleibt sichtbar, solange mindestens eine seiner Quellen aktiv ist.",

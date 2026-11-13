@@ -86,12 +86,21 @@ object C {
     var light = false
     var theme = AppTheme.NIGHT
     var style = AppStyle.CLASSIC
+    /** Gewähltes neues Design (null = klassische Designs mit Farbe + Stil). */
+    var skin: Skin? = null
 
     init { use(AppTheme.NIGHT) }
 
     fun use(t: AppTheme) {
         theme = t
-        val p = t.p
+        usePalette(t.p)
+    }
+
+    var palette: Palette = AppTheme.NIGHT.p
+        private set
+
+    fun usePalette(p: Palette) {
+        palette = p
         fun c(s: String) = Color.parseColor(s)
         bgTop = c(p.bgTop); bgBottom = c(p.bgBottom); card = c(p.card); cardStroke = c(p.cardStroke)
         gold = c(p.accent); goldSoft = c(p.accentSoft); onAccent = c(p.onAccent)
@@ -102,8 +111,16 @@ object C {
     /** Design anwenden und Fensterfarben/Statusleiste anpassen. */
     @Suppress("DEPRECATION")
     fun applyTo(a: android.app.Activity, t: AppTheme) {
-        use(t)
-        style = Prefs(a).style
+        val sk = Skins.byId(Prefs(a).skin)
+        skin = sk
+        if (sk != null) {
+            theme = t
+            usePalette(sk.p)
+            style = AppStyle.CLASSIC
+        } else {
+            use(t)
+            style = Prefs(a).style
+        }
         val w = a.window
         w.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(bgTop))
         w.statusBarColor = bgTop
@@ -333,6 +350,7 @@ class PatternBackground(context: Context) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         val w = width.toFloat(); val h = height.toFloat()
+        C.skin?.let { drawSkinBackground(canvas, it, w, h); return }
         when (C.style) {
             AppStyle.SOFT3D -> { canvas.drawColor(C.bgTop); return }
             AppStyle.GLOW -> {
@@ -365,6 +383,104 @@ class PatternBackground(context: Context) : View(context) {
             }
             y += cell * 0.866f
             row++
+        }
+    }
+
+    private val dp1 = context.dp(1f).toFloat()
+
+    /** Hintergründe der neuen Designs (Verlauf + Dekoration). */
+    private fun drawSkinBackground(c: Canvas, sk: Skin, w: Float, h: Float) {
+        c.drawRect(0f, 0f, w, h, bg)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        val rnd = java.util.Random(7)
+        when (sk.deco) {
+            Deco.STARS -> {
+                for (i in 0 until 90) {
+                    p.color = Color.argb(60 + rnd.nextInt(160), 255, 255, 255)
+                    c.drawCircle(rnd.nextFloat() * w, rnd.nextFloat() * h, dp1 * (0.5f + rnd.nextFloat() * 1.1f), p)
+                }
+            }
+            Deco.EMBERS -> {
+                p.shader = android.graphics.RadialGradient(w / 2, h * 1.1f, maxOf(w, h) * 0.7f, Color.argb(150, 120, 50, 18), Color.TRANSPARENT, Shader.TileMode.CLAMP)
+                c.drawRect(0f, 0f, w, h, p); p.shader = null
+                for (i in 0 until 40) {
+                    p.color = Color.argb(60 + rnd.nextInt(120), 255, 170, 100)
+                    c.drawCircle(rnd.nextFloat() * w, h - rnd.nextFloat() * h * 0.45f, dp1 * (1f + rnd.nextFloat() * 1.5f), p)
+                }
+            }
+            Deco.GLOW -> {
+                p.shader = android.graphics.RadialGradient(w * 0.3f, h * 0.35f, maxOf(w, h) * 0.6f, Color.argb(110, 90, 50, 18), Color.TRANSPARENT, Shader.TileMode.CLAMP)
+                c.drawRect(0f, 0f, w, h, p)
+            }
+            Deco.SKY -> {
+                p.shader = LinearGradient(0f, 0f, 0f, h, intArrayOf(Color.parseColor("#F7B49A"), Color.parseColor("#F6D6B0"), Color.parseColor("#CFE3EE"), Color.parseColor("#A9C9DE")), floatArrayOf(0f, 0.35f, 0.75f, 1f), Shader.TileMode.CLAMP)
+                c.drawRect(0f, 0f, w, h, p)
+            }
+            Deco.LEAVES -> {
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp1 * 1.6f; p.color = alpha(C.gold, 34)
+                for ((fx, fy, sc, rot) in listOf(arrayOf(0.8f, 0.05f, 1.2f, 15f), arrayOf(-0.05f, 0.4f, 1f, -20f), arrayOf(0.75f, 0.7f, 0.9f, 30f), arrayOf(0.4f, 0.85f, 0.8f, -10f))) {
+                    c.save(); c.translate(fx * w, fy * h); c.rotate(rot); val k = dp1 * 1.6f * sc
+                    val path = Path()
+                    path.moveTo(25 * k, 78 * k); path.lineTo(25 * k, 4 * k)
+                    path.moveTo(25 * k, 60 * k); path.cubicTo(10 * k, 52 * k, 4 * k, 38 * k, 8 * k, 24 * k); path.cubicTo(20 * k, 30 * k, 25 * k, 44 * k, 25 * k, 60 * k)
+                    path.moveTo(25 * k, 44 * k); path.cubicTo(40 * k, 36 * k, 46 * k, 22 * k, 42 * k, 8 * k); path.cubicTo(30 * k, 14 * k, 25 * k, 28 * k, 25 * k, 44 * k)
+                    c.drawPath(path, p); c.restore()
+                }
+            }
+            Deco.WOOD -> {
+                p.strokeWidth = dp1
+                var x = 0f
+                while (x < w) {
+                    p.color = Color.argb(18 + rnd.nextInt(26), 0, 0, 0)
+                    c.drawLine(x, 0f, x + rnd.nextFloat() * dp1 * 6, h, p)
+                    x += dp1 * (3 + rnd.nextInt(6))
+                }
+            }
+            Deco.GRAIN -> {
+                p.color = Color.argb(14, 255, 255, 255)
+                var y = 0f
+                while (y < h) { var x = 0f; while (x < w) { c.drawCircle(x, y, dp1 * 0.6f, p); x += dp1 * 5 }; y += dp1 * 5 }
+            }
+            Deco.ARCADES -> {
+                p.style = Paint.Style.STROKE; p.strokeWidth = dp1 * 2; p.color = alpha(C.gold, 50)
+                val n = maxOf(4, (w / (dp1 * 72)).toInt()); val aw = w / n; val ah = minOf(h * 0.16f, dp1 * 110)
+                for (i in 0 until n) {
+                    val l = i * aw + dp1 * 4; val r = (i + 1) * aw - dp1 * 4
+                    val path = Path(); path.moveTo(l, ah); path.lineTo(l, (r - l) / 2); path.arcTo(RectF(l, 0f, r, r - l), 180f, 180f); path.lineTo(r, ah)
+                    c.drawPath(path, p)
+                }
+            }
+            Deco.MOSAIC -> {
+                val cell = dp1 * 44
+                var y = 0f
+                while (y < h) {
+                    var x = 0f
+                    while (x < w) {
+                        p.style = Paint.Style.FILL
+                        p.color = Color.argb(30, 42, 157, 143); c.drawRect(x, y, x + cell / 2, y + cell / 2, p); c.drawRect(x + cell / 2, y + cell / 2, x + cell, y + cell, p)
+                        p.color = Color.argb(30, 231, 111, 81); c.drawRect(x + cell / 2, y, x + cell, y + cell / 2, p); c.drawRect(x, y + cell / 2, x + cell / 2, y + cell, p)
+                        p.style = Paint.Style.STROKE; p.strokeWidth = dp1; p.color = Color.argb(45, 242, 193, 78)
+                        c.drawCircle(x + cell / 2, y + cell / 2, cell * 0.24f, p)
+                        x += cell
+                    }
+                    y += cell
+                }
+            }
+            Deco.KISWA -> {
+                p.color = Color.argb(10, 255, 255, 255); p.strokeWidth = dp1
+                var x = -h
+                while (x < w) { c.drawLine(x, 0f, x + h, h, p); x += dp1 * 9 }
+                val bh = dp1 * 46
+                p.color = Color.parseColor("#1A1712"); c.drawRect(0f, 0f, w, bh, p)
+                p.color = C.gold; c.drawRect(0f, bh - dp1 * 2, w, bh, p)
+                p.color = alpha(C.gold, 140)
+                var xx = 0f; while (xx < w) { c.drawLine(xx, dp1 * 4, xx, bh - dp1 * 4, p); xx += dp1 * 12 }
+                p.color = Color.parseColor("#1A1712"); val tw = minOf(w * 0.7f, dp1 * 320)
+                c.drawRect(w / 2 - tw / 2, dp1 * 3, w / 2 + tw / 2, bh - dp1 * 4, p)
+                p.color = C.gold; p.textAlign = Paint.Align.CENTER; p.textSize = dp1 * 22
+                c.drawText("حَيَّ عَلَى الصَّلَاةِ", w / 2, bh * 0.7f, p)
+            }
+            Deco.PATTERN, Deco.NONE -> {}
         }
     }
 

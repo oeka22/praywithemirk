@@ -81,6 +81,11 @@ class Prefs(context: Context) {
         set(v) = sp.edit().putInt("main_scale", v).apply()
     val mainFactor: Float get() = floatArrayOf(1f, 1.3f, 1.6f)[mainScale.coerceIn(0, 2)]
 
+    /** Neues Design (Skin-ID) oder "classic" für die klassischen Designs (Farbe + Stil). */
+    var skin: String
+        get() = sp.getString("skin", "classic") ?: "classic"
+        set(v) = sp.edit().putString("skin", v).apply()
+
     var style: AppStyle
         get() = AppStyle.byId(sp.getString("style", AppStyle.CLASSIC.id))
         set(v) = sp.edit().putString("style", v.id).apply()

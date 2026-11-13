@@ -61,8 +61,12 @@ class SettingsActivity : Activity() {
         render()
     }
 
+    private var shownSkin = ""
+
     override fun onResume() {
         super.onResume()
+        if (shownSkin.isNotEmpty() && shownSkin != prefs.skin) { shownSkin = prefs.skin; recreate(); return }
+        shownSkin = prefs.skin
         render()
     }
 
@@ -108,6 +112,17 @@ class SettingsActivity : Activity() {
         // ---------------- Design
         section(S.design[l])
         col.addView(card(14).apply {
+            val cur = Skins.byId(prefs.skin)
+            addView(label(S.currentDesign[l]))
+            addView(text(cur?.title?.get(l) ?: S.classicDesign[l], 17f, C.cream, Fonts.bold), lp(top = dp(2)))
+            addView(text(S.chooseDesign[l], 15f, C.onAccent, Fonts.medium, Gravity.CENTER).apply {
+                background = roundRect(C.gold, dp(16).toFloat())
+                setPadding(dp(12), dp(12), dp(12), dp(12))
+                setOnClickListener { startActivity(Intent(this@SettingsActivity, DesignActivity::class.java)) }
+            }, lp(top = dp(10)))
+        }, lp(top = dp(8)))
+        col.addView(card(14).apply {
+            addView(label(S.classicDesign[l] + " – " + S.colors[l] + " & " + S.styleLabel[l]), lp(bottom = dp(8)))
             val grid = LinearLayout(this@SettingsActivity).apply { orientation = LinearLayout.HORIZONTAL }
             AppTheme.entries.forEachIndexed { idx, t -> grid.addView(themeTile(t), LinearLayout.LayoutParams(0, -2, 1f).apply { if (idx > 0) leftMargin = dp(8) }) }
             addView(grid)
@@ -117,7 +132,7 @@ class SettingsActivity : Activity() {
             for (rowIdx in 0..1) {
                 addView(segmented(st.subList(rowIdx * 2, rowIdx * 2 + 2).map { it.title[l] },
                     st.indexOf(prefs.style) - rowIdx * 2) { idx ->
-                    prefs.style = st[rowIdx * 2 + idx]; recreate()
+                    prefs.style = st[rowIdx * 2 + idx]; prefs.skin = "classic"; recreate()
                 }, lp(top = dp(6)))
             }
         }, lp(top = dp(8)))
@@ -490,8 +505,9 @@ class SettingsActivity : Activity() {
         }
         tile.contentDescription = t.title[prefs.lang]
         tile.setOnClickListener {
-            if (t != prefs.theme) {
+            if (t != prefs.theme || prefs.skin != "classic") {
                 prefs.theme = t
+                prefs.skin = "classic"
                 recreate()
             }
         }

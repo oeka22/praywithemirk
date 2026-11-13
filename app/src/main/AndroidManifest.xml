@@ -45,6 +45,11 @@
             android:parentActivityName=".MainActivity" />
 
         <activity
+            android:name=".DesignActivity"
+            android:exported="false"
+            android:parentActivityName=".SettingsActivity" />
+
+        <activity
             android:name=".QiblaActivity"
             android:exported="false"
             android:screenOrientation="portrait"
