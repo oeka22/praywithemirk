@@ -61,7 +61,11 @@ object S {
     val atAdhan = T("Beim Gebetsruf", "Ezan okunurken", "During the adhan")
     val sunnahPrayers = T("Sunnah-Gebete", "Sünnet namazları", "Sunnah prayers")
     val afterSalah = T("Nach dem Gebet", "Namazdan sonra", "After the prayer")
-    val tapToCount = T("Tippen zum Zählen", "Saymak için dokun", "Tap to count")
+    val tapToCount = T(
+        "Bei jeder Wiederholung einmal auf die Karte tippen.",
+        "Her tekrarda karta bir kez dokun.",
+        "Tap the card once per repetition."
+    )
     val reset = T("Zurücksetzen", "Sıfırla", "Reset")
     val source = T("Quelle", "Kaynak", "Source")
 
@@ -176,6 +180,14 @@ object S {
         "Pusula hassas değil: telefonu birkaç kez yatay 8 çizerek hareket ettir, metal ve mıknatıslardan uzak tut.",
         "Compass inaccurate: move the phone in a figure-8 a few times and keep it away from metal/magnets."
     )
+    val noCompassData = T(
+        "Der Kompass-Sensor liefert keine Daten. Bitte das Handy neu starten oder prüfen, ob eine Hülle mit Magnet stört.",
+        "Pusula sensörü veri vermiyor. Telefonu yeniden başlat veya mıknatıslı kılıfın etkisini kontrol et.",
+        "The compass sensor delivers no data. Restart the phone or check whether a magnetic case interferes."
+    )
+    val facingQibla = T("Richtung Qibla", "Kıble yönündesin", "Facing the qibla")
+    val turnRight = T("%d° nach rechts drehen", "%d° sağa dön", "Turn %d° right")
+    val turnLeft = T("%d° nach links drehen", "%d° sola dön", "Turn %d° left")
     val noCompass = T("Dieses Gerät hat keinen Kompass-Sensor.", "Bu cihazda pusula sensörü yok.", "This device has no compass sensor.")
     val guide = T("Gebetsanleitung", "Namaz rehberi", "Prayer guide")
     val guideShort = T("Anleitung", "Rehber", "Guide")
@@ -257,6 +269,34 @@ object S {
     val sourceFailed = T("Keine Inhalte gefunden.", "İçerik bulunamadı.", "No content found.")
     val refresh = T("Aktualisieren", "Yenile", "Refresh")
     val ownSource = T("Eigene Quelle", "Kendi kaynağın", "Own source")
+
+    // Erklärung im Adhkar-Bildschirm
+    val helpTitle = T("Was ist das? – Erklärung", "Bu nedir? – Açıklama", "What is this? – Explanation")
+    val helpWhat = T(
+        "Adhkar (Einzahl: Dhikr) sind kurze Gedenkworte und Bittgebete, die der Prophet ﷺ rund um das Gebet gesprochen hat. Die Sunnah ist seine Praxis – also das, was er selbst regelmäßig getan hat. Nichts davon ist Pflicht, aber es bringt viel Lohn und hilft, ruhig und bewusst zu beten. Diese Seite ist in drei Teile gegliedert:",
+        "Zikirler, Peygamber ﷺ'in namaz etrafında söylediği kısa anma sözleri ve dualardır. Sünnet onun uygulamasıdır – yani düzenli olarak kendisinin yaptığı şeyler. Bunların hiçbiri farz değildir, ama çok sevaplıdır ve namazı huzurla ve bilinçli kılmaya yardım eder. Bu sayfa üç bölümden oluşur:",
+        "Adhkar (singular: dhikr) are short words of remembrance and supplications the Prophet ﷺ said around the prayer. The Sunnah is his practice – what he himself did regularly. None of it is obligatory, but it brings great reward and helps to pray calmly and consciously. This page has three parts:"
+    )
+    val helpAdhan = T(
+        "Was man sagt, während der Muezzin ruft und direkt danach – bevor das Gebet beginnt.",
+        "Müezzin ezan okurken ve hemen ardından – namaz başlamadan önce söylenenler.",
+        "What to say while the muezzin calls and right afterwards – before the prayer begins."
+    )
+    val helpSunnah = T(
+        "Freiwillige Gebete, die man zusätzlich vor oder nach dem Pflichtgebet (Fard) betet. „Muʾakkada“ heißt: der Prophet ﷺ hat sie fast nie ausgelassen. Wie man sie betet, steht in der Anleitung.",
+        "Farz namazdan önce veya sonra ayrıca kılınan nafile namazlar. „Müekked“: Peygamber ﷺ'in neredeyse hiç terk etmediği sünnetler. Nasıl kılınacağı rehberde anlatılır.",
+        "Voluntary prayers performed in addition to the obligatory (fard) prayer, before or after it. “Mu'akkadah” means the Prophet ﷺ almost never left them. How to pray them is in the guide."
+    )
+    val helpAfter = T(
+        "Nach dem Friedensgruß (Salam) sitzen bleiben und die Adhkar der Reihe nach sprechen – von oben nach unten.",
+        "Selam verdikten sonra oturmaya devam et ve zikirleri sırayla, yukarıdan aşağıya oku.",
+        "After the closing salam remain seated and recite the adhkar in order – from top to bottom."
+    )
+    val helpUse = T(
+        "So benutzt du die Karten: Sprich den Text selbst (Arabisch, die Umschrift hilft beim Aussprechen) und tippe bei jeder Wiederholung einmal auf die Karte. Rechts unten siehst du, wie oft (z. B. 0 / 33). Ist die Zahl erreicht, wird die Karte golden ✓. Langes Drücken setzt sie zurück, „Zurücksetzen“ oben alle. Es wird nichts vorgelesen. Tippe auf diese Box, um die Erklärung ein- oder auszuklappen.",
+        "Kartları şöyle kullan: Metni kendin oku (okunuş telaffuza yardım eder) ve her tekrarda karta bir kez dokun. Sağ altta kaç kez olduğunu görürsün (örn. 0 / 33). Sayıya ulaşınca kart altın rengi olur ✓. Uzun basmak sıfırlar, üstteki „Sıfırla“ hepsini. Sesli okuma yapılmaz. Açıklamayı açıp kapatmak için bu kutuya dokun.",
+        "How to use the cards: recite the text yourself (the transliteration helps with pronunciation) and tap the card once per repetition. Bottom right shows how many (e.g. 0 / 33). When reached, the card turns gold ✓. Long-press resets it, “Reset” at the top resets all. Nothing is read aloud. Tap this box to expand or collapse the explanation."
+    )
 
     val weekdays = arrayOf(
         T("Montag", "Pazartesi", "Monday"), T("Dienstag", "Salı", "Tuesday"),

@@ -86,16 +86,37 @@ class DhikrActivity : Activity() {
         content.addView(text(S.prayerArabic[prayer], 34f, C.gold, Fonts.serif, Gravity.CENTER), lp(top = dp(12)))
         content.addView(divider())
 
+        // ---- Erklärung (ein-/ausklappbar, Zustand wird gemerkt)
+        val open = prefs.adhkarHelp
+        content.addView(card(16).apply {
+            val head = LinearLayout(this@DhikrActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+            head.addView(text("ⓘ  " + S.helpTitle[l], 15f, C.gold, Fonts.medium), LinearLayout.LayoutParams(0, -2, 1f))
+            head.addView(text(if (open) "−" else "+", 22f, C.gold, Fonts.light))
+            addView(head)
+            if (open) {
+                addView(text(S.helpWhat[l], 14f, C.cream, Fonts.light), lp(top = dp(10)))
+                for ((t, d) in listOf(S.atAdhan to S.helpAdhan, S.sunnahPrayers to S.helpSunnah, S.afterSalah to S.helpAfter)) {
+                    addView(text(t[l], 14f, C.gold, Fonts.medium), lp(top = dp(10)))
+                    addView(text(d[l], 14f, C.cream, Fonts.light), lp(top = dp(2)))
+                }
+                addView(text(S.helpUse[l], 14f, C.cream, Fonts.light), lp(top = dp(12)))
+            }
+            setOnClickListener { prefs.adhkarHelp = !prefs.adhkarHelp; render() }
+        }, lp(top = dp(10)))
+
         section(S.atAdhan[l])
+        content.addView(text(S.helpAdhan[l], 13f, C.muted, Fonts.light), lp(top = dp(4)))
         Adhkar.atAdhan.filter { prefs.allowed(it.source) }.forEach { content.addView(dhikrCard(it), lp(top = dp(10))) }
 
         section(S.sunnahPrayers[l])
+        content.addView(text(S.helpSunnah[l], 13f, C.muted, Fonts.light), lp(top = dp(4)))
         content.addView(card().apply {
             addView(text(Adhkar.sunnahFor(prayer)[l], 15f, C.cream, Fonts.light))
         }, lp(top = dp(10)))
 
         section(S.afterSalah[l])
-        content.addView(text(S.tapToCount[l], 12f, C.muted, Fonts.regular), lp(top = dp(2)))
+        content.addView(text(S.helpAfter[l], 13f, C.muted, Fonts.light), lp(top = dp(4)))
+        content.addView(text(S.tapToCount[l], 13f, C.teal, Fonts.light), lp(top = dp(4)))
         Adhkar.afterSalah(prayer).filter { prefs.allowed(it.source) }.forEach { content.addView(dhikrCard(it), lp(top = dp(10))) }
     }
 

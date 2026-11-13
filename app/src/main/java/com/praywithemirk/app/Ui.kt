@@ -168,8 +168,7 @@ fun Context.card(padding: Int = 18): LinearLayout = LinearLayout(this).apply {
         setPadding(dp(padding), dp(padding), dp(padding), dp(padding))
     } else {
         val d = StyledCard(this@card, dp(20).toFloat())
-        background = d
-        setLayerType(View.LAYER_TYPE_SOFTWARE, null) // für Schatten/Unschärfe auf allen Android-Versionen
+        background = d // Hardware-Darstellung: funktioniert auch bei sehr langen Karten
         val m = d.margin
         setPadding(dp(padding) + m, dp(padding) + m - d.shiftUp, dp(padding) + m, dp(padding) + m + d.shiftUp)
     }
@@ -195,6 +194,19 @@ class StyledCard(private val ctx: Context, private val radius: Float) : android.
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
     private val r = RectF()
 
+    /** Weicher Schatten: ab Android 9 per Hardware (setShadowLayer), davor als einfache Fläche. */
+    private fun shadow(c: Canvas, l: Float, t: Float, rr: Float, bb: Float, blur: Float, dx: Float, dy: Float, color: Int, fill: Int) {
+        val sp = Paint(Paint.ANTI_ALIAS_FLAG)
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            sp.color = fill
+            sp.setShadowLayer(blur, dx, dy, color)
+            c.drawRoundRect(l, t, rr, bb, radius, radius, sp)
+        } else {
+            sp.color = alpha(color, Color.alpha(color) / 2)
+            c.drawRoundRect(l + dx, t + dy, rr + dx, bb + dy, radius, radius, sp)
+        }
+    }
+
     override fun draw(c: Canvas) {
         val b = bounds
         val m = margin.toFloat()
@@ -202,10 +214,8 @@ class StyledCard(private val ctx: Context, private val radius: Float) : android.
         p.reset(); p.isAntiAlias = true
         when (C.style) {
             AppStyle.GLASS -> {
-                p.color = Color.argb(110, 0, 0, 0)
-                p.maskFilter = android.graphics.BlurMaskFilter(m, android.graphics.BlurMaskFilter.Blur.NORMAL)
-                c.drawRoundRect(r.left, r.top + m / 2, r.right, r.bottom + m / 2, radius, radius, p)
-                p.maskFilter = null
+                shadow(c, r.left, r.top, r.right, r.bottom, m, 0f, m / 2, Color.argb(110, 0, 0, 0), alpha(C.bgTop, 255))
+                // Schattenfläche wieder mit dem Hintergrund überdecken, damit das Glas durchscheinend bleibt
                 p.shader = LinearGradient(r.left, r.top, r.right * 0.6f, r.bottom,
                     alpha(Color.WHITE, if (C.light) 170 else 38), alpha(Color.WHITE, if (C.light) 110 else 10), Shader.TileMode.CLAMP)
                 c.drawRoundRect(r, radius, radius, p)
@@ -216,23 +226,17 @@ class StyledCard(private val ctx: Context, private val radius: Float) : android.
             }
             AppStyle.SOFT3D -> {
                 val base = C.bgTop
-                val off = m * 0.55f
-                p.maskFilter = android.graphics.BlurMaskFilter(m * 0.9f, android.graphics.BlurMaskFilter.Blur.NORMAL)
-                p.color = darker(base, if (C.light) 0.18f else 0.45f)
-                c.drawRoundRect(r.left + off, r.top + off, r.right + off, r.bottom + off, radius, radius, p)
-                p.color = lighter(base, if (C.light) 0.7f else 0.10f)
-                c.drawRoundRect(r.left - off, r.top - off, r.right - off, r.bottom - off, radius, radius, p)
-                p.maskFilter = null
+                val off = m * 0.5f
+                shadow(c, r.left, r.top, r.right, r.bottom, m * 0.9f, off, off, darker(base, if (C.light) 0.18f else 0.45f), base)
+                shadow(c, r.left, r.top, r.right, r.bottom, m * 0.9f, -off, -off, lighter(base, if (C.light) 0.7f else 0.10f), base)
                 p.color = base
                 c.drawRoundRect(r, radius, radius, p)
             }
             else -> { // GLOW
-                p.color = Color.argb(190, 0, 0, 0)
-                p.maskFilter = android.graphics.BlurMaskFilter(m, android.graphics.BlurMaskFilter.Blur.NORMAL)
-                c.drawRoundRect(r.left + m * 0.2f, r.top + m * 0.6f, r.right - m * 0.2f, r.bottom + m * 0.8f, radius, radius, p)
-                p.maskFilter = null
+                val top = lighter(C.bgTop, if (C.light) 0.6f else 0.09f)
+                shadow(c, r.left, r.top, r.right, r.bottom, m, 0f, m * 0.7f, Color.argb(190, 0, 0, 0), top)
                 p.shader = LinearGradient(0f, r.top, 0f, r.bottom,
-                    lighter(C.bgTop, if (C.light) 0.6f else 0.09f), darker(C.bgTop, if (C.light) 0f else 0.05f), Shader.TileMode.CLAMP)
+                    top, darker(C.bgTop, if (C.light) 0f else 0.05f), Shader.TileMode.CLAMP)
                 c.drawRoundRect(r, radius, radius, p)
                 p.shader = LinearGradient(0f, r.top, 0f, r.top + radius * 2,
                     alpha(Color.WHITE, if (C.light) 200 else 45), alpha(Color.WHITE, 0), Shader.TileMode.CLAMP)

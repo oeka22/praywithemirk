@@ -65,6 +65,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("clap_stop", false)
         set(v) = sp.edit().putBoolean("clap_stop", v).apply()
 
+    /** Erklärung im Adhkar-Bildschirm aufgeklappt anzeigen. */
+    var adhkarHelp: Boolean
+        get() = sp.getBoolean("adhkar_help", true)
+        set(v) = sp.edit().putBoolean("adhkar_help", v).apply()
+
     var style: AppStyle
         get() = AppStyle.byId(sp.getString("style", AppStyle.CLASSIC.id))
         set(v) = sp.edit().putString("style", v.id).apply()

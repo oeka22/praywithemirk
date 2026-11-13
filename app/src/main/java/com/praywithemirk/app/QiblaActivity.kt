@@ -61,6 +61,9 @@ class QiblaActivity : Activity(), SensorEventListener {
     private lateinit var compass: CompassView
     private lateinit var info: TextView
     private lateinit var hint: TextView
+    private lateinit var live: TextView
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var lastEvent = 0L
 
     private var qibla = 0.0
     private var declination = 0f
@@ -111,6 +114,8 @@ class QiblaActivity : Activity(), SensorEventListener {
 
         info = text("", 16f, C.cream, Fonts.light, Gravity.CENTER)
         col.addView(info)
+        live = text("", 22f, C.gold, Fonts.light, Gravity.CENTER).apply { fontFeatureSettings = "tnum" }
+        col.addView(live, lp(top = dp(6)))
         hint = text("", 13f, C.muted, Fonts.light, Gravity.CENTER)
         col.addView(hint, lp(top = dp(8)))
 
@@ -121,30 +126,35 @@ class QiblaActivity : Activity(), SensorEventListener {
 
     override fun onResume() {
         super.onResume()
-        val l = prefs.lang
+        hint.text = S.compassHint[prefs.lang]
+        smoothed = Float.NaN
+        lastEvent = 0L
         val rv = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
-        useRotationVector = rv != null
-        if (rv != null) {
-            sm.registerListener(this, rv, SensorManager.SENSOR_DELAY_UI)
-        } else {
-            val acc = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-            val mag = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
-            if (acc == null || mag == null) {
-                hint.text = S.noCompass[l]
-                return
-            }
-            sm.registerListener(this, acc, SensorManager.SENSOR_DELAY_UI)
-            sm.registerListener(this, mag, SensorManager.SENSOR_DELAY_UI)
+        if (rv != null && sm.registerListener(this, rv, SensorManager.SENSOR_DELAY_GAME)) {
+            useRotationVector = true
+            // Kommt vom Rotationssensor nach 2 s nichts an, auf Beschleunigung + Magnetfeld wechseln
+            handler.postDelayed({ if (lastEvent == 0L) { sm.unregisterListener(this); useAccMag() } }, 2000)
+        } else useAccMag()
+        // Zeigt nach 4 s ohne Daten einen klaren Hinweis
+        handler.postDelayed({ if (lastEvent == 0L) { hint.text = S.noCompassData[prefs.lang]; hint.setTextColor(C.gold) } }, 4000)
+    }
+
+    private fun useAccMag() {
+        useRotationVector = false
+        hasGrav = false; hasGeo = false
+        val acc = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        val mag = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
+        if (acc == null || mag == null) {
+            hint.text = S.noCompass[prefs.lang]
+            return
         }
-        // Für Genauigkeitsmeldungen immer auch das Magnetometer beobachten
-        sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)?.let {
-            if (useRotationVector) sm.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
-        }
-        hint.text = S.compassHint[l]
+        sm.registerListener(this, acc, SensorManager.SENSOR_DELAY_GAME)
+        sm.registerListener(this, mag, SensorManager.SENSOR_DELAY_GAME)
     }
 
     override fun onPause() {
         super.onPause()
+        handler.removeCallbacksAndMessages(null)
         sm.unregisterListener(this)
     }
 
@@ -162,7 +172,6 @@ class QiblaActivity : Activity(), SensorEventListener {
                 fromAccMag(r, o)
             }
             Sensor.TYPE_MAGNETIC_FIELD -> {
-                if (useRotationVector) return
                 lowPass(e.values, geo); hasGeo = true
                 fromAccMag(r, o)
             }
@@ -183,6 +192,8 @@ class QiblaActivity : Activity(), SensorEventListener {
 
     /** [magneticAzimuth] in Grad; wird in geografische Richtung umgerechnet und geglättet. */
     private fun update(magneticAzimuth: Float) {
+        if (magneticAzimuth.isNaN()) return
+        lastEvent = System.currentTimeMillis()
         val trueHeading = ((magneticAzimuth + declination) % 360f + 360f) % 360f
         smoothed = if (smoothed.isNaN()) trueHeading else {
             var d = trueHeading - smoothed
@@ -197,6 +208,12 @@ class QiblaActivity : Activity(), SensorEventListener {
         if (nowAligned && !aligned) compass.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         aligned = nowAligned
         compass.set(heading, qibla.toFloat(), aligned)
+        val turn = diff.roundToInt()
+        live.text = when {
+            aligned -> "✓  " + S.facingQibla[prefs.lang]
+            turn > 0 -> S.turnRight[prefs.lang].format(turn)
+            else -> S.turnLeft[prefs.lang].format(-turn)
+        }
     }
 
     override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
