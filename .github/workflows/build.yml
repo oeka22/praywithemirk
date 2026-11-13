@@ -9,21 +9,30 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
 
       - uses: android-actions/setup-android@v3
 
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Dateien prüfen
+        run: |
+          ls -la
+          ls -la app
+          ls -la gradle/wrapper || true
+
       - name: APK bauen
         run: |
-          chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          gradle assembleRelease --no-daemon --stacktrace
           cp app/build/outputs/apk/release/app-release.apk PrayWithEmirK.apk
 
       - name: Als Artefakt speichern
