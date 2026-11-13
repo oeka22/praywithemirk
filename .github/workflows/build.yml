@@ -18,7 +18,11 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: android-actions/setup-android@v3
+      # Das Android-SDK ist auf dem GitHub-Rechner vorinstalliert – nur Lizenzen bestätigen
+      - name: Android-SDK vorbereiten
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -28,7 +32,6 @@ jobs:
         run: |
           ls -la
           ls -la app
-          ls -la gradle/wrapper || true
 
       - name: APK bauen
         run: |
