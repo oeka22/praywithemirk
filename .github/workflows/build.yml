@@ -1,0 +1,42 @@
+name: Pray with Emir K. – APK bauen
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: APK bauen
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk PrayWithEmirK.apk
+
+      - name: Als Artefakt speichern
+        uses: actions/upload-artifact@v4
+        with:
+          name: PrayWithEmirK-apk
+          path: PrayWithEmirK.apk
+
+      - name: Release aktualisieren
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Pray with Emir K. – neueste Version
+          body: "Zum Installieren: PrayWithEmirK.apk antippen, herunterladen und öffnen."
+          files: PrayWithEmirK.apk
+          make_latest: true
