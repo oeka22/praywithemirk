@@ -85,7 +85,7 @@ class GuideActivity : Activity() {
         content.removeAllViews()
 
         // ---- Aufbau dieses Gebets
-        content.addView(text(S.prayerArabic[prayer], 34f, C.gold, Fonts.serif, Gravity.CENTER), lp(top = dp(12)))
+        if (prefs.showArabic) content.addView(text(S.prayerArabic[prayer], 34f, C.gold, Fonts.serif, Gravity.CENTER), lp(top = dp(12)))
         content.addView(divider())
         section(S.structure[l].format(S.prayerNames[prayer][l]))
         content.addView(card().apply {
@@ -147,7 +147,7 @@ class GuideActivity : Activity() {
         val title = (if (n > 0) "$n.  " else "") + s.title[l]
         box.addView(text(title, 15f, C.gold, Fonts.medium))
         box.addView(text(s.text[l], 14f, C.cream, Fonts.light), lp(top = dp(6)))
-        s.arabic?.let { box.addView(arabic(it, 21f), lp(top = dp(10))) }
+        if (prefs.showArabic) s.arabic?.let { box.addView(arabic(it, 21f), lp(top = dp(10))) }
         if (prefs.showTranslit) s.translit?.let { box.addView(text(it, 13f, C.teal, Fonts.italic), lp(top = dp(8))) }
         s.meaning?.let { box.addView(text(it[l], 13f, C.muted, Fonts.light), lp(top = dp(6))) }
         return box

@@ -8,7 +8,7 @@ zur Gebetszeit, Sunnah-Adhkar zu jedem Gebet und zweimal täglich einem Hadith b
   Ring mit nächstem Gebet, großer Gebetszeit und Countdown, rechts daneben der Tagesimpuls (Hadith/Sure).
   Darunter alle Tageszeiten mit Glocke je Gebet. Auf Tablets/im Querformat als Kacheln nebeneinander.
 - **Kreis-Anzeige einstellbar** (Einstellungen › Anzeige): großer Wert = Countdown (Standard), Gebetszeit
-  oder aktuelle Uhrzeit; Uhr oben an/aus, Sekunden an/aus, Größe klein/mittel/groß.
+  oder aktuelle Uhrzeit; Uhr oben an/aus, Größe klein/mittel/groß.
 - **Qibla-Kompass**: zeigt mit Kaaba-Symbol Richtung Mekka (inkl. Missweisung), vibriert bei korrekter
   Ausrichtung, Hinweis zur Kalibrierung.
 - **Gebetsanleitung für Anfänger**: Aufbau jedes Gebets (Rakʿa Sunnah/Fard/Witr), Gebetswaschung Schritt für
@@ -19,7 +19,12 @@ zur Gebetszeit, Sunnah-Adhkar zu jedem Gebet und zweimal täglich einem Hadith b
 - **Eigene Aufnahmen**: Gebetsruf per Mikrofon aufnehmen (max. 1 Minute), anhören, löschen, zuweisen.
 - **Quellen**: eingebaute Quellen deaktivieren oder löschen (wiederherstellbar), eigene Quellen per URL
   hinzufügen (JSON/Text/Webseite, siehe `quellen/LIESMICH.md`).
-- **5 Designs**: Nacht (Standard), Mitternacht, Abenddämmerung, Sandstein (hell), Minze (hell).
+- **Design-Seite** (Einstellungen › Design › „Alle Designs ansehen“):
+  - **Klassisch** mit Ring: 5 Farben – Nacht (Standard), Mitternacht, Abenddämmerung, Sandstein (hell), Minze (hell) – und 4 Stile.
+  - **Fanus** („Laternenlicht“) und **Mashrabiya** („Gitterfenster“), je in Morgenlicht (hell), Abendgold (mittel), Laternennacht (dunkel): eine Zeile Uhr | Timer | Gebetszeit, leuchtende Quadrat-Leiste, orientalische Sterne, Laternen und Gitter.
+  - Typografie pur, Mondnacht, Andalus, Kaminabend, Andalus bei Nacht.
+- Timer passt sich bei Stunden (H:MM:SS) automatisch dem Platz an.
+- **Arabische Schrift** und **Umschrift** in den Einstellungen getrennt ein-/ausschaltbar.
 - **Gebetsruf**: läuft als Vordergrund-Dienst auch bei gesperrtem Bildschirm, mit „Stopp“-Knopf
   in der Benachrichtigung. Standard-Gebetsruf plus individuell je Gebet: Datei vom Handy oder direkter
   https-Audio-Link (wird einmal heruntergeladen, danach offline). Im Link-Dialog gibt es Vorschläge frei

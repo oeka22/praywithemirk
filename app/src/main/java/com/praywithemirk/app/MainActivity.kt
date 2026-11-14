@@ -55,6 +55,10 @@ class MainActivity : Activity() {
     private lateinit var listBox: LinearLayout
     private lateinit var impulseBox: LinearLayout
     private lateinit var bannerBox: LinearLayout
+    // nur Designs Fanus/Mashrabiya (eine Zeile Uhr | Timer | Gebetszeit)
+    private var segBar: SegmentBar? = null
+    private var atLabel: TextView? = null
+    private var lineMode = false
 
     private var builtKey: String = ""
     private var wide = false
@@ -105,7 +109,7 @@ class MainActivity : Activity() {
         refreshAll()
     }
 
-    private fun uiKey() = "${prefs.lang.id}|${prefs.theme.id}|${prefs.style.id}|${prefs.skin}|${resources.configuration.screenWidthDp}|${prefs.ringBig}|${prefs.headerClock}|${prefs.clockSize}|${prefs.mainScale}|${resources.configuration.screenHeightDp}"
+    private fun uiKey() = "${prefs.lang.id}|${prefs.theme.id}|${prefs.style.id}|${prefs.skin}|${resources.configuration.screenWidthDp}|${prefs.ringBig}|${prefs.headerClock}|${prefs.clockSize}|${prefs.mainScale}|${prefs.showArabic}|${resources.configuration.screenHeightDp}"
 
     // ---------------------------------------------------------------- Aufbau
 
@@ -114,6 +118,9 @@ class MainActivity : Activity() {
         C.applyTo(this, prefs.theme)
         builtKey = uiKey()
         impulseKey = ""
+        segBar = null; atLabel = null
+        lineMode = C.skin?.hero == Hero.LINE
+        if (lineMode) { buildLineUi(); return }
 
         val screenDp = resources.configuration.screenWidthDp.toFloat()
         val screenH = resources.configuration.screenHeightDp.toFloat()
@@ -192,7 +199,7 @@ class MainActivity : Activity() {
         }
         nextArabic = text("", 14f * k * mul[1], if (hero == Hero.KISWA || hero == Hero.ARCH) col(skin!!.alt) else alpha(fg, 170), Fonts.serif, align).apply {
             maxLines = 1
-            if (hero == Hero.TYPO || hero == Hero.FLAP) visibility = View.GONE
+            if (hero == Hero.TYPO || hero == Hero.FLAP || !prefs.showArabic) visibility = View.GONE
         }
         // großer Wert (Standard: Countdown) – passt sich automatisch der Breite an
         bigValue = text("", 40f * k * mul[2], fg, if (skin == null) Fonts.medium else SkinFonts.digits(), align).apply {
@@ -284,6 +291,236 @@ class MainActivity : Activity() {
         setContentView(root)
     }
 
+    // ---------------------------------------------------------------- Designs Fanus / Mashrabiya
+
+    private var lineK = 1f
+
+    /**
+     * Aufbau für Fanus („Laternenlicht“) und Mashrabiya („Gitterfenster“):
+     * Ort · Datum · Hijri – eine Zeile Uhr | Timer | Gebetszeit – Leiste aus leuchtenden Quadraten – Hadith – Gebetszeiten – Knöpfe.
+     * Mashrabiya im Querformat: Gebetszeiten im Gitterband ganz oben.
+     */
+    private fun buildLineUi() {
+        val l = prefs.lang
+        val sk = C.skin!!
+        val mash = sk.deco == Deco.MASHRABIYA
+        val sw = resources.configuration.screenWidthDp.toFloat()
+        val sh = resources.configuration.screenHeightDp.toFloat()
+        wide = sw >= 600f
+        fs = prefs.mainFactor
+        val user = fs / 1.3f // Normal / Groß (Standard) / Sehr groß
+        val k = ((if (wide) minOf(sw / 1280f, sh / 800f) else sw / 390f) * user).coerceIn(0.55f, 2.2f)
+        lineK = k
+        ring = RingView(this); art = null
+        val lamp = col(sk.heroBg)
+
+        val root = FrameLayout(this)
+        root.addView(PatternBackground(this), FrameLayout.LayoutParams(-1, -1))
+        val scroll = ScrollView(this).apply { isVerticalScrollBarEnabled = false; isFillViewport = true; fitsSystemWindows = true }
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val side = dp((if (wide) 44f else 20f) * minOf(k, 1.2f))
+            setPadding(side, dp((if (wide) 20f else 18f) * k), side, dp(24f * k))
+        }
+        scroll.addView(col)
+        root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
+
+        // ---- Kopfzeile: Ort · Datum · Hijri
+        val hs = if (wide) 22f * k else 13f * k
+        placeView = text("", if (wide) hs else 20f * k, C.cream, Fonts.bold).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END }
+        dateView = text("", hs, C.muted, Fonts.regular).apply { maxLines = 1 }
+        hijriView = text("", hs, C.muted, Fonts.regular).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END }
+        fun sep() = text("  ·  ", hs, C.muted, Fonts.regular)
+        if (wide) {
+            val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(0, 0, dp(170f * k), 0) }
+            head.addView(placeView); head.addView(sep()); head.addView(dateView); head.addView(sep())
+            head.addView(hijriView, LinearLayout.LayoutParams(0, -2, 1f))
+            col.addView(head)
+        } else {
+            col.addView(placeView, lp().apply { rightMargin = dp(34f * k) })
+            val r2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(0, 0, dp(34f * k), 0) }
+            r2.addView(dateView); r2.addView(sep()); r2.addView(hijriView, LinearLayout.LayoutParams(0, -2, 1f))
+            col.addView(r2, lp(top = dp(2)))
+        }
+
+        // ---- Gebetszeiten (Mashrabiya Querformat: oben im Gitterband)
+        listBox = LinearLayout(this).apply { orientation = if (wide) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL }
+        val listHolder: View = if (mash) FrameLayout(this).apply {
+            background = LatticeDrawable(C.gold, dp(1f).toFloat())
+            val pd = dp(12f * k)
+            setPadding(pd, pd, pd, pd)
+            addView(listBox, FrameLayout.LayoutParams(-1, -2))
+        } else listBox
+        if (mash && wide) col.addView(listHolder, lp(top = dp(14f * k)))
+
+        // ---- Zeile: Uhr | Timer | Gebetszeit
+        val timerSp = when {
+            wide && mash -> 211f; wide -> 187f; mash -> 60f; else -> 72f
+        } * k
+        val sideW = dp((if (wide) 300f else 66f) * k)
+        val clockSp = (if (wide) 104f else 26f) * k
+        val labelSp = (if (wide) 18f else 10f) * k
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = if (mash) Gravity.CENTER_VERTICAL else Gravity.BOTTOM
+            background = TimerGlowDrawable(lamp, C.gold, mash, dp(1f).toFloat())
+        }
+        fun label(t: String, g: Int) = text(t, labelSp, C.muted, Fonts.bold, g).apply { letterSpacing = 0.14f; maxLines = 1 }
+        val left = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.START }
+        left.addView(label(S.nowLabel[l].uppercase(), Gravity.START))
+        clockView = text("", clockSp, C.cream, Fonts.light, Gravity.START).apply { includeFontPadding = false; fontFeatureSettings = "tnum"; maxLines = 1 }
+        left.addView(clockView)
+        row.addView(left, LinearLayout.LayoutParams(sideW, -2))
+
+        val center = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL }
+        val nameRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
+        nextName = text("", (if (wide) 30f else 17f) * k, C.gold, SkinFonts.nameBold()).apply { maxLines = 1 }
+        nextArabic = text("", (if (wide) 30f else 17f) * k, C.muted, Fonts.serif).apply {
+            maxLines = 1
+            if (!prefs.showArabic) visibility = View.GONE
+        }
+        nameRow.addView(nextName)
+        nameRow.addView(nextArabic, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(10f * k) })
+        center.addView(nameRow)
+        // Timer: Größe wie entworfen bei MM:SS; bei H:MM:SS schrumpft die Schrift automatisch in den vorgesehenen Raum
+        bigValue = text("", timerSp, C.cream, SkinFonts.digits(), Gravity.CENTER).apply {
+            includeFontPadding = false
+            fontFeatureSettings = "tnum"
+            maxLines = 1
+            letterSpacing = if (wide) -0.02f else -0.04f
+            setAutoSizeTextTypeUniformWithConfiguration(12, timerSp.toInt().coerceAtLeast(13), 1, android.util.TypedValue.COMPLEX_UNIT_SP)
+            setShadowLayer(dp(18f * k).toFloat(), 0f, 0f, alpha(lamp, if (C.light) 120 else 150))
+        }
+        center.addView(bigValue, LinearLayout.LayoutParams(-1, dp(timerSp * 0.98f)))
+        row.addView(center, LinearLayout.LayoutParams(0, -2, 1f))
+
+        val right = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.END }
+        atLabel = label("", Gravity.END)
+        right.addView(atLabel)
+        smallValue = text("", clockSp, C.gold, Fonts.light, Gravity.END).apply { includeFontPadding = false; fontFeatureSettings = "tnum"; maxLines = 1 }
+        right.addView(smallValue)
+        row.addView(right, LinearLayout.LayoutParams(sideW, -2))
+        col.addView(row, lp(top = dp((if (wide) 12f else 16f) * k)))
+
+        // ---- Leiste aus leuchtenden Quadraten
+        val bar = SegmentBar(this, stars = !mash)
+        segBar = bar
+        col.addView(bar, lp(h = dp((if (wide) 36f else 20f) * k), top = dp(2f * k)))
+
+        // ---- Hadith / Sure
+        impulseBox = card(((if (wide) 28f else 12f) * k).toInt()).apply {
+            foreground = RosetteDrawable(C.gold, dp((if (wide) 10f else 7f) * k).toFloat(), dp((if (wide) 14f else 10f) * k).toFloat())
+        }
+        col.addView(impulseBox, lp(top = dp((if (wide) 12f else 10f) * k)))
+
+        bannerBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        col.addView(bannerBox, lp(top = dp(4)))
+
+        if (!(mash && wide)) col.addView(listHolder, lp(top = dp((if (wide) 14f else 12f) * k)))
+
+        // ---- Knöpfe
+        fun pill(label: String, onClick: () -> Unit) = text(label, (if (wide) 19f else 14f) * k, C.cream, Fonts.medium, Gravity.CENTER).apply {
+            maxLines = 1
+            background = roundRect(C.card, dp(27f * k).toFloat(), C.cardStroke, dp(1))
+            clickableRipple(dp(27f * k).toFloat())
+            setOnClickListener { onClick() }
+        }
+        val nowSalah = { Schedule.currentSalah(prefs, ZonedDateTime.now(ZoneId.systemDefault())) }
+        val pills = listOf(
+            pill(S.adhkarShort[l]) { startActivity(Intent(this, DhikrActivity::class.java).putExtra(DhikrActivity.EXTRA_PRAYER, nowSalah())) },
+            pill(S.qiblaShort[l]) { startActivity(Intent(this, QiblaActivity::class.java)) },
+            pill(S.guideShort[l]) {
+                val n = nextEvent?.prayer ?: P.FAJR
+                startActivity(Intent(this, GuideActivity::class.java).putExtra(GuideActivity.EXTRA_PRAYER, if (n == P.SUNRISE) P.DHUHR else n))
+            },
+            pill(S.settings[l]) { startActivity(Intent(this, SettingsActivity::class.java)) },
+        )
+        val ph = dp((if (wide) 54f else 46f) * k)
+        val gap = dp((if (wide) 14f else 10f) * k)
+        if (wide) {
+            val r = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            pills.forEachIndexed { i, v -> r.addView(v, LinearLayout.LayoutParams(0, ph, 1f).apply { if (i > 0) leftMargin = gap }) }
+            col.addView(r, lp(top = dp(14f * k)))
+        } else {
+            for (rr in 0..1) {
+                val r = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+                for (cc in 0..1) r.addView(pills[rr * 2 + cc], LinearLayout.LayoutParams(0, ph, 1f).apply { if (cc > 0) leftMargin = gap })
+                col.addView(r, lp(top = if (rr == 0) dp(14f * k) else gap))
+            }
+        }
+        setContentView(root)
+    }
+
+    /** Gebetszeiten für Fanus/Mashrabiya: Kacheln (Querformat) oder Zeilen (Hochformat); Namen passen sich der Breite an. */
+    private fun buildLineList(now: ZonedDateTime) {
+        val l = prefs.lang
+        val sk = C.skin ?: return
+        val k = lineK
+        val times = prefs.timesFor(now.toLocalDate(), now.zone)
+        val current = prevEvent?.takeIf { it.time.toLocalDate() == now.toLocalDate() }?.prayer
+        val next = nextEvent?.takeIf { it.time.toLocalDate() == now.toLocalDate() }?.prayer
+        val mash = sk.deco == Deco.MASHRABIYA
+        for (i in P.ALL) {
+            val isCurrent = i == current
+            val color = when { isCurrent -> C.gold; i == P.SUNRISE -> C.muted; else -> C.cream }
+            fun fitName(sp: Float, g: Int) = text(S.prayerNames[i][l], sp, color, SkinFonts.nameBold(), g).apply {
+                maxLines = 1
+                setAutoSizeTextTypeUniformWithConfiguration(9, sp.toInt().coerceAtLeast(10), 1, android.util.TypedValue.COMPLEX_UNIT_SP)
+            }
+            if (wide) {
+                val tile = FrameLayout(this).apply { background = skinTile(sk, isCurrent, i == next) }
+                val colv = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL
+                    setPadding(dp(10f * k), dp((if (mash) 12f else 16f) * k), dp(10f * k), dp(10f * k))
+                }
+                colv.addView(fitName(26f * k, Gravity.CENTER), LinearLayout.LayoutParams(-1, dp(34f * k)))
+                if (prefs.showArabic) colv.addView(text(S.prayerArabic[i], 20f * k, C.muted, Fonts.serif, Gravity.CENTER).apply { maxLines = 1 })
+                colv.addView(text(times[i].format(hhmm), 44f * k, color, SkinFonts.digits(), Gravity.CENTER).apply {
+                    includeFontPadding = false; fontFeatureSettings = "tnum"; maxLines = 1
+                    setAutoSizeTextTypeUniformWithConfiguration(10, (44f * k).toInt().coerceAtLeast(11), 1, android.util.TypedValue.COMPLEX_UNIT_SP)
+                }, LinearLayout.LayoutParams(-1, dp(48f * k)).apply { topMargin = dp(4f * k) })
+                tile.addView(colv, FrameLayout.LayoutParams(-1, -2))
+                if (i != P.SUNRISE) {
+                    tile.addView(bellView(i), FrameLayout.LayoutParams(dp(30f * k), dp(28f * k), Gravity.TOP or Gravity.END))
+                    tile.setOnClickListener { openGuide(i) }
+                }
+                listBox.addView(tile, LinearLayout.LayoutParams(0, -2, 1f).apply { if (i > 0) leftMargin = dp(14f * k) })
+            } else {
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+                    setPadding(dp(16f * k), 0, dp(4f * k), 0)
+                    background = skinTile(sk, isCurrent, i == next, small = true)
+                }
+                row.addView(fitName(20f * k, Gravity.START or Gravity.CENTER_VERTICAL), LinearLayout.LayoutParams(0, dp(30f * k), 1.2f))
+                if (prefs.showArabic) row.addView(text(S.prayerArabic[i], 16f * k, C.muted, Fonts.serif).apply { maxLines = 1 },
+                    LinearLayout.LayoutParams(0, -2, 0.8f).apply { leftMargin = dp(8f * k) })
+                row.addView(text(times[i].format(hhmm), 24f * k, color, SkinFonts.digits()).apply { fontFeatureSettings = "tnum"; maxLines = 1 })
+                row.addView(bellView(i), LinearLayout.LayoutParams(dp(36f * k), dp(34f * k)))
+                if (i != P.SUNRISE) row.setOnClickListener { openGuide(i) }
+                listBox.addView(row, LinearLayout.LayoutParams(-1, dp(52f * k)).apply { if (i > 0) topMargin = dp(6f * k) })
+            }
+        }
+    }
+
+    /** Hadith/Sure für Fanus/Mashrabiya: Übersetzung zuerst, darunter Arabisch (abschaltbar), Umschrift, Quelle. */
+    private fun buildLineImpulse(evening: Boolean, item: DailyItem?) {
+        val l = prefs.lang
+        val k = lineK
+        val s = if (wide) k else k * 0.9f
+        impulseBox.removeAllViews()
+        impulseBox.addView(text("۞  " + (if (evening) S.eveningImpulse[l] else S.morningImpulse[l]).uppercase(),
+            (if (wide) 15f else 10f) * s, C.gold, Fonts.bold).apply { letterSpacing = 0.16f })
+        if (item == null) {
+            impulseBox.addView(text(S.allSourcesOff[l], 14f * s, C.muted, Fonts.light), lp(top = dp(10)))
+            return
+        }
+        impulseBox.addView(text(item.meaning[l], (if (wide) 27f else 15f) * s, C.cream, SkinFonts.body()).apply { setLineSpacing(0f, 1.25f) },
+            lp(top = dp((if (wide) 10f else 6f) * s)))
+        if (item.arabic.isNotBlank() && prefs.showArabic) impulseBox.addView(arabic(item.arabic, (if (wide) 30f else 18f) * s), lp(top = dp(8f * s)))
+        if (prefs.showTranslit && item.translit != null) impulseBox.addView(text(item.translit, (if (wide) 17f else 12f) * s, C.teal, Fonts.italic), lp(top = dp(6f * s)))
+        impulseBox.addView(text("— " + item.source, (if (wide) 16f else 11f) * s, C.muted, Fonts.medium, Gravity.END), lp(top = dp(6f * s)))
+    }
+
     // ---------------------------------------------------------------- Aktualisieren
 
     private fun refreshAll() {
@@ -355,6 +592,7 @@ class MainActivity : Activity() {
     private fun buildList(now: ZonedDateTime) {
         val l = prefs.lang
         listBox.removeAllViews()
+        if (lineMode) { buildLineList(now); return }
         val times = prefs.timesFor(now.toLocalDate(), now.zone)
         val current = prevEvent?.takeIf { it.time.toLocalDate() == now.toLocalDate() }?.prayer
         val next = nextEvent?.takeIf { it.time.toLocalDate() == now.toLocalDate() }?.prayer
@@ -387,7 +625,7 @@ class MainActivity : Activity() {
                     if (isCurrent) foreground = rowHighlight().also { it.alpha = 255 }
                 }
                 tile.addView(text(S.prayerNames[i][l], 16f * fs, nameColor, if (C.skin != null) SkinFonts.nameBold() else Fonts.bold, Gravity.CENTER).apply { maxLines = 1 })
-                tile.addView(text(S.prayerArabic[i], 14f * fs, C.muted, Fonts.serif, Gravity.CENTER))
+                if (prefs.showArabic) tile.addView(text(S.prayerArabic[i], 14f * fs, C.muted, Fonts.serif, Gravity.CENTER))
                 tile.addView(text(times[i].format(hhmm), 30f * fs, nameColor, if (C.skin != null) SkinFonts.digits() else Fonts.medium, Gravity.CENTER).apply { fontFeatureSettings = "tnum"; maxLines = 1 })
                 tile.addView(bellView(i), LinearLayout.LayoutParams(dp(36), dp(32)))
                 if (i != P.SUNRISE) tile.setOnClickListener { openGuide(i) }
@@ -402,7 +640,7 @@ class MainActivity : Activity() {
                 }
                 val names = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
                 names.addView(text(S.prayerNames[i][l], 16f * fs, nameColor, if (C.skin != null) (if (isCurrent) SkinFonts.nameBold() else SkinFonts.name()) else if (isCurrent) Fonts.bold else Fonts.medium).apply { maxLines = 1 })
-                names.addView(text(S.prayerArabic[i], 14f * fs, C.muted, Fonts.serif), LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(10) })
+                if (prefs.showArabic) names.addView(text(S.prayerArabic[i], 14f * fs, C.muted, Fonts.serif), LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(10) })
                 if (i == next) names.addView(text("•", 18f, C.gold, Fonts.medium), LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(8) })
                 row.addView(names, LinearLayout.LayoutParams(0, -2, 1f))
                 row.addView(text(times[i].format(hhmm), 20f * fs, nameColor, if (C.skin != null) SkinFonts.digits() else Fonts.medium).apply { fontFeatureSettings = "tnum" })
@@ -439,9 +677,10 @@ class MainActivity : Activity() {
         val l = prefs.lang
         val times = prefs.timesFor(now.toLocalDate(), now.zone)
         val (evening, item) = DailyContent.current(now, times[P.FAJR], times[P.MAGHRIB], { prefs.allowed(it.source) }, CustomSources.enabledItems(this))
-        val key = "${l.id}|${prefs.showTranslit}|$evening|${item?.arabic?.hashCode()}|${item?.meaning?.de?.hashCode()}"
+        val key = "${l.id}|${prefs.showTranslit}|${prefs.showArabic}|$evening|${item?.arabic?.hashCode()}|${item?.meaning?.de?.hashCode()}"
         if (key == impulseKey) return
         impulseKey = key
+        if (lineMode) { buildLineImpulse(evening, item); return }
 
         // Wanduhr/Tablet: Schrift wächst mit dem Platz; Handy hochkant: etwas kompakter (wenig Breite neben dem Ring)
         val s = if (wide) (ringDp / 260f).coerceIn(1.2f, 2.0f) * fs.coerceAtMost(1.3f) else 0.85f * fs.coerceAtMost(1.2f)
@@ -458,7 +697,7 @@ class MainActivity : Activity() {
             text(item.title[l], 15f * s, C.cream, Fonts.bold),
             lp(top = dp(6))
         )
-        if (item.arabic.isNotBlank()) impulseBox.addView(arabic(item.arabic, 21f * s), lp(top = dp(8)))
+        if (item.arabic.isNotBlank() && prefs.showArabic) impulseBox.addView(arabic(item.arabic, 21f * s), lp(top = dp(8)))
         if (prefs.showTranslit && item.translit != null) {
             impulseBox.addView(text(item.translit, 13f * s, C.teal, Fonts.italic), lp(top = dp(8)))
         }
@@ -474,15 +713,9 @@ class MainActivity : Activity() {
         if (next == null || prev == null || !now.isBefore(next.time)) {
             refreshAll(); return
         }
-        // Uhr oben (optional mit kleinen Sekunden)
+        // Uhr ohne Sekunden
         val hm = now.format(hhmm)
-        if (prefs.showSeconds) {
-            val sec = ":%02d".format(now.second)
-            val sp = SpannableString(hm + sec)
-            sp.setSpan(RelativeSizeSpan(0.42f), hm.length, hm.length + sec.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            sp.setSpan(ForegroundColorSpan(C.muted), hm.length, hm.length + sec.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            clockView.text = sp
-        } else clockView.text = hm
+        clockView.text = hm
 
         val l = prefs.lang
         nextName.text = S.prayerNames[next.prayer][l]
@@ -491,7 +724,12 @@ class MainActivity : Activity() {
         val cd = if (s >= 3600) "%d:%02d:%02d".format(s / 3600, (s % 3600) / 60, s % 60)
         else "%02d:%02d".format(s / 60, s % 60)
         val prayerTime = next.time.format(hhmm)
-        when (prefs.ringBig) {
+        if (lineMode) {
+            // Fanus/Mashrabiya: links Uhr, Mitte Countdown, rechts Gebetszeit
+            bigValue.text = cd
+            smallValue.text = prayerTime
+            atLabel?.text = S.atLabel[l].format(S.prayerNames[next.prayer][l]).uppercase()
+        } else when (prefs.ringBig) {
             1 -> { bigValue.text = prayerTime; smallValue.text = "−$cd" }
             2 -> { bigValue.text = hm; smallValue.text = "$prayerTime · −$cd" }
             else -> { bigValue.text = cd; smallValue.text = S.at[l].format(prayerTime) }
@@ -500,6 +738,7 @@ class MainActivity : Activity() {
         val total = Duration.between(prev.time, next.time).seconds.coerceAtLeast(1)
         val done = Duration.between(prev.time, now).seconds
         ring.progress = done.toFloat() / total
+        segBar?.progress = done.toFloat() / total
         art?.let { a ->
             a.progress = done.toFloat() / total
             a.nowHour = now.hour + now.minute / 60f + now.second / 3600f

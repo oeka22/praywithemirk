@@ -105,7 +105,7 @@ class AdhanActivity : Activity() {
 
         val bell = BellView(this)
         col.addView(bell, LinearLayout.LayoutParams(dp(240), dp(240)).apply { gravity = Gravity.CENTER_HORIZONTAL })
-        col.addView(text(S.prayerArabic[prayer], 40f, C.gold, Fonts.serif, Gravity.CENTER), lp(top = dp(8)))
+        if (Prefs(this).showArabic) col.addView(text(S.prayerArabic[prayer], 40f, C.gold, Fonts.serif, Gravity.CENTER), lp(top = dp(8)))
         col.addView(text(S.timeFor[l].format(S.prayerNames[prayer][l]), 26f, C.cream, Fonts.light, Gravity.CENTER), lp(top = dp(4)))
         col.addView(text(java.time.LocalTime.now().withSecond(0).withNano(0).toString(), 18f, C.muted, Fonts.light, Gravity.CENTER), lp(top = dp(2)))
 

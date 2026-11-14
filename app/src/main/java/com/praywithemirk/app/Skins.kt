@@ -16,10 +16,10 @@ import kotlin.math.min
 import kotlin.math.sin
 
 /** Art der Hauptgrafik (trägt Countdown und nächstes Gebet). */
-enum class Hero { RING, ARCH, SUNARC, TYPO, MOON, LANTERN, DIAL24, DISC, FRAME, FLAP, SOFT, KISWA }
+enum class Hero { RING, ARCH, SUNARC, TYPO, MOON, LANTERN, DIAL24, DISC, FRAME, FLAP, SOFT, KISWA, LINE }
 
 /** Dekoration des Hintergrunds. */
-enum class Deco { NONE, PATTERN, STARS, EMBERS, LEAVES, WOOD, GRAIN, ARCADES, MOSAIC, KISWA, GLOW, SKY }
+enum class Deco { NONE, PATTERN, STARS, EMBERS, LEAVES, WOOD, GRAIN, ARCADES, MOSAIC, KISWA, GLOW, SKY, FANUS, MASHRABIYA }
 
 /** Darstellung der Gebetszeiten-Liste. */
 enum class ListStyle { ROWS, TILES, ARCH_TILES, FLAP }
@@ -52,18 +52,31 @@ object Skins {
     ) = Palette(bgTop, bgBottom, card, cardStroke, accent, accentSoft, onAccent, text, muted, faint, secondary, pattern, light)
 
     val all: List<Skin> = listOf(
-        Skin("mihrab", T("Mihrab", "Mihrap", "Mihrab"),
-            T("Grüne Gebetsnische mit Lampe, Gebetszeiten als kleine Bögen.", "Kandilli yeşil mihrap, vakitler küçük kemerler.", "Green prayer niche with lamp, times as small arches."),
-            pal("#F5EFE2", "#EEE5D0", "#FFFFFFFF", "#66C9A253", "#A8852F", "#33C9A253", "#FFFFFF", "#1D3B2F", "#6B7D72", "#A9B3A8", "#2A5A46", true),
-            Hero.ARCH, Deco.NONE, LS.ARCH, "#2A5A46", "#163A2C", "#F5EFE2", "#E8C46E"),
-        Skin("sky", T("Himmelsbogen", "Gökyüzü yayı", "Sky arc"),
-            T("Der Tag als Sonnenbahn, die Gebete als Stationen.", "Gün güneşin yolu, vakitler duraklar.", "The day as the sun's path, prayers as stations."),
-            pal("#F7B49A", "#A9C9DE", "#B3FFFFFF", "#33FFFFFF", "#C2482A", "#33C2482A", "#FFFFFF", "#2B2335", "#5C5468", "#8E8899", "#E0603A", true),
-            Hero.SUNARC, Deco.SKY, LS.ROWS, "#00000000", "#00000000", "#2B2335", "#FFF4C2"),
-        Skin("zellige", T("Zellige", "Zellige", "Zellige"),
-            T("Marokkanisches Mosaik, kräftige Fliesenfarben, dicke Ziffern.", "Fas mozaiği, canlı çini renkleri.", "Moroccan mosaic, bold tile colours."),
-            pal("#0E3B4F", "#0B3040", "#FF1A5470", "#FFF2C14E", "#F2C14E", "#55F2C14E", "#0E3B4F", "#FDF6E9", "#B9D3DB", "#6E98A6", "#E76F51", false),
-            Hero.FRAME, Deco.MOSAIC, LS.TILES, "#FDF6E9", "#FDF6E9", "#0E3B4F", "#E76F51"),
+        // Fanus („Laternenlicht“) und Mashrabiya („Gitterfenster“) – je 3 Helligkeiten, Layout: eine Zeile Uhr | Timer | Gebetszeit
+        Skin("fanus_light", T("Fanus · Morgenlicht", "Fanus · Sabah ışığı", "Fanus · Morning light"),
+            T("Laternenlicht, hell: Creme und Sand, Kupfer-Akzente.", "Fener ışığı, açık: krem ve kum, bakır vurgular.", "Lantern light, bright: cream and sand, copper accents."),
+            pal("#FBF3E4", "#F1DFC0", "#B8FFFBF3", "#FFE2C99E", "#B0651C", "#33D69640", "#FFFFFF", "#3A2717", "#735A3F", "#A08A6E", "#8C4A22", true, "#29A06828"),
+            Hero.LINE, Deco.FANUS, LS.TILES, "#FFB347", "#F1DFC0", "#3A2717", "#8C4A22"),
+        Skin("fanus_mid", T("Fanus · Abendgold", "Fanus · Akşam altını", "Fanus · Evening gold"),
+            T("Laternenlicht, mittel: warmes Terrakotta mit Bernstein.", "Fener ışığı, orta: sıcak terrakota ve kehribar.", "Lantern light, medium: warm terracotta with amber."),
+            pal("#5A3A2A", "#3B2519", "#14FFE8C8", "#33FFDEB2", "#F4B45E", "#33F4B45E", "#3B2519", "#F8EAD6", "#D9BE9C", "#9C8068", "#F0C98E", false, "#1AFFCD8C"),
+            Hero.LINE, Deco.FANUS, LS.TILES, "#FFB24D", "#3B2519", "#F8EAD6", "#F0C98E"),
+        Skin("fanus_dark", T("Fanus · Laternennacht", "Fanus · Fener gecesi", "Fanus · Lantern night"),
+            T("Laternenlicht, dunkel: Petrol-Nacht mit Laternen-Bernstein.", "Fener ışığı, koyu: petrol gecesi ve kehribar.", "Lantern light, dark: petrol night with lantern amber."),
+            pal("#0D1A20", "#1C1814", "#0FFFF0D7", "#24FFE1B4", "#E9AE5A", "#2EE9AE5A", "#0D1A20", "#F3EBDD", "#A9B3AE", "#5E7A80", "#7FC8BE", false, "#14E9AE5A"),
+            Hero.LINE, Deco.FANUS, LS.TILES, "#FFA940", "#14252B", "#F3EBDD", "#7FC8BE"),
+        Skin("mash_light", T("Mashrabiya · Morgenlicht", "Meşrebiye · Sabah ışığı", "Mashrabiya · Morning light"),
+            T("Gitterfenster, hell: Gebetszeiten oben im Gitterband, Spitzbogen hinter dem Timer.", "Kafes pencere, açık: vakitler üstte kafes bandında.", "Lattice window, bright: prayer times on top in a lattice band."),
+            pal("#FBF3E4", "#F1DFC0", "#B8FFFBF3", "#FFE2C99E", "#B0651C", "#33D69640", "#FFFFFF", "#3A2717", "#735A3F", "#A08A6E", "#8C4A22", true, "#29A06828"),
+            Hero.LINE, Deco.MASHRABIYA, LS.TILES, "#FFB347", "#F1DFC0", "#3A2717", "#8C4A22"),
+        Skin("mash_mid", T("Mashrabiya · Abendgold", "Meşrebiye · Akşam altını", "Mashrabiya · Evening gold"),
+            T("Gitterfenster, mittel: Terrakotta und Bernstein.", "Kafes pencere, orta: terrakota ve kehribar.", "Lattice window, medium: terracotta and amber."),
+            pal("#5A3A2A", "#3B2519", "#14FFE8C8", "#33FFDEB2", "#F4B45E", "#33F4B45E", "#3B2519", "#F8EAD6", "#D9BE9C", "#9C8068", "#F0C98E", false, "#1AFFCD8C"),
+            Hero.LINE, Deco.MASHRABIYA, LS.TILES, "#FFB24D", "#3B2519", "#F8EAD6", "#F0C98E"),
+        Skin("mash_dark", T("Mashrabiya · Laternennacht", "Meşrebiye · Fener gecesi", "Mashrabiya · Lantern night"),
+            T("Gitterfenster, dunkel: Petrol-Nacht, warmes Laternenlicht.", "Kafes pencere, koyu: petrol gecesi, sıcak fener ışığı.", "Lattice window, dark: petrol night, warm lantern light."),
+            pal("#0D1A20", "#1C1814", "#0FFFF0D7", "#24FFE1B4", "#E9AE5A", "#2EE9AE5A", "#0D1A20", "#F3EBDD", "#A9B3AE", "#5E7A80", "#7FC8BE", false, "#14E9AE5A"),
+            Hero.LINE, Deco.MASHRABIYA, LS.TILES, "#FFA940", "#14252B", "#F3EBDD", "#7FC8BE"),
         Skin("typo", T("Typografie pur", "Saf tipografi", "Pure typography"),
             T("Plakat-Stil: riesige fette Ziffern, ein roter Akzent.", "Afiş tarzı: dev kalın rakamlar, tek kırmızı vurgu.", "Poster style: huge bold digits, one red accent."),
             pal("#F4F1EA", "#EFEBE2", "#00000000", "#22000000", "#111111", "#14000000", "#FFFFFF", "#111111", "#777777", "#BBBBBB", "#D1452F", true),
@@ -72,50 +85,18 @@ object Skins {
             T("Der Mond nach Hijri-Datum, Sterne, ruhige Nacht.", "Hicri tarihe göre ay, yıldızlar.", "The moon by Hijri date, stars, calm night."),
             pal("#1E2A55", "#05070F", "#0DFFFFFF", "#22FFFFFF", "#FFE39A", "#26FFE39A", "#0B1026", "#E9ECFF", "#9AA3CC", "#5C6488", "#B9C3FF", false),
             Hero.MOON, Deco.STARS, LS.ROWS, "#F4EED5", "#BDB59A", "#E9ECFF", "#B9C3FF"),
-        Skin("lantern", T("Laterne", "Fener", "Lantern"),
-            T("Eine glühende Laterne trägt den Countdown.", "Parlayan bir fener geri sayımı taşır.", "A glowing lantern carries the countdown."),
-            pal("#3A220E", "#0D0805", "#FF24150A", "#44E9B670", "#E9B670", "#33FFB54A", "#1C1009", "#FFE9C4", "#C9A77D", "#7D6448", "#FFCF7A", false),
-            Hero.LANTERN, Deco.GLOW, LS.ROWS, "#FFD27A", "#7A3D10", "#3A1B05", "#E58A2A"),
-        Skin("bento", T("Bento", "Bento", "Bento"),
-            T("Modernes Kachel-Raster wie Handy-Widgets.", "Telefon widget'ları gibi modern kutular.", "Modern tile grid like phone widgets."),
-            pal("#EEF1F6", "#E6EAF2", "#FFFFFFFF", "#141D2A44", "#3B5BDB", "#263B5BDB", "#FFFFFF", "#1D2A44", "#6B7690", "#ADB5BD", "#087F5B", true),
-            Hero.FRAME, Deco.NONE, LS.TILES, "#3B5BDB", "#7048E8", "#FFFFFF", "#FFFFFF"),
-        Skin("dial", T("24-Stunden-Zifferblatt", "24 saatlik kadran", "24-hour dial"),
-            T("Alle Gebete auf einem Tages-Zifferblatt, Zeiger = jetzt.", "Tüm vakitler günlük kadranda.", "All prayers on a day dial, hand = now."),
-            pal("#1F3060", "#0B1328", "#10FFFFFF", "#22FFFFFF", "#F2C14E", "#26F2C14E", "#14213D", "#FFFFFF", "#A9B4D0", "#5C6A8E", "#FF8A5B", false),
-            Hero.DIAL24, Deco.NONE, LS.ROWS, "#00000000", "#00000000", "#FFFFFF", "#FF8A5B"),
-        Skin("kiswa", T("Kiswa", "Kisve", "Kiswa"),
-            T("Schwarz und Gold, Kalligrafie-Fries, edle dünne Ziffern.", "Siyah ve altın, hat frizi.", "Black and gold, calligraphy frieze."),
-            pal("#12100C", "#0B0A08", "#14FFFFFF", "#66C9A14A", "#E6C473", "#22E6C473", "#0B0A08", "#FFF3D6", "#C9A14A", "#7A6A48", "#C9A14A", false),
-            Hero.KISWA, Deco.KISWA, LS.ROWS, "#00000000", "#00000000", "#FFF3D6", "#E6C473"),
         Skin("andalus", T("Andalus", "Endülüs", "Andalus"),
             T("Hell wie ein Alhambra-Innenhof: Arkaden, Bogen, Brunnen.", "Elhamra avlusu gibi aydınlık.", "Bright like an Alhambra courtyard."),
             pal("#FDF7EE", "#E9F2EE", "#FFFFFFFF", "#33C8A774", "#B5793A", "#2A2F4A45", "#FFFFFF", "#2F4A45", "#6F7F7A", "#AAB5B0", "#7FB8A8", true),
             Hero.ARCH, Deco.ARCADES, LS.ARCH, "#FFFFFF", "#D7ECE5", "#2F4A45", "#7FB8A8", serif = false),
-        Skin("board", T("Abfahrtstafel", "Kalkış panosu", "Departure board"),
-            T("Wie die Fallblatt-Anzeige im Bahnhof.", "Gardaki döner tabela gibi.", "Like the split-flap board at the station."),
-            pal("#0D0D0D", "#0D0D0D", "#FF181818", "#FF222222", "#F5D547", "#402A250A", "#0D0D0D", "#FFFFFF", "#AAAAAA", "#555555", "#7CFC7C", false),
-            Hero.FLAP, Deco.NONE, LS.FLAP, "#181818", "#222222", "#FFFFFF", "#F5D547", mono = true),
         Skin("fire", T("Kaminabend", "Şömine akşamı", "Fireside"),
             T("Warme Glut, schwebende Funken, leicht glimmende Ziffern.", "Sıcak kor, uçuşan kıvılcımlar.", "Warm embers, floating sparks."),
             pal("#1E1511", "#151110", "#08FFFFFF", "#22F0A868", "#F0A868", "#26F0A868", "#1E1511", "#F3E3CF", "#B39A82", "#6E5A48", "#C0582A", false),
             Hero.SOFT, Deco.EMBERS, LS.ROWS, "#00000000", "#00000000", "#F3E3CF", "#F0A868", serif = true),
-        Skin("walnut", T("Walnuss & Messing", "Ceviz ve pirinç", "Walnut & brass"),
-            T("Wie eine Holz-Wanduhr: Maserung, Zifferblatt im Messingring.", "Ahşap duvar saati gibi.", "Like a wooden wall clock."),
-            pal("#3B2A1E", "#32241A", "#CC1F1610", "#44D4B072", "#D4B072", "#30D4B072", "#3B2A1E", "#EFE2CC", "#B89F80", "#7A6450", "#B48C4C", false),
-            Hero.DISC, Deco.WOOD, LS.ROWS, "#F4EAD6", "#E2D3B6", "#3B2A1E", "#B48C4C", serif = true),
-        Skin("moss", T("Moos", "Yosun", "Moss"),
-            T("Tiefes Waldgrün mit zarten Blättern, sehr beruhigend.", "Koyu orman yeşili, narin yapraklar.", "Deep forest green with delicate leaves."),
-            pal("#26372A", "#141D17", "#07FFFFFF", "#22B8CF9A", "#B8CF9A", "#22B8CF9A", "#141D17", "#E4EAD8", "#9FB197", "#5F6F5A", "#7FA36A", false),
-            Hero.SOFT, Deco.LEAVES, LS.ROWS, "#00000000", "#00000000", "#E4EAD8", "#B8CF9A", serif = true),
         Skin("andalus_night", T("Andalus bei Nacht", "Gece Endülüs", "Andalus at night"),
             T("Der Innenhof bei Nacht: Laterne, Brunnen, Goldakzente.", "Gece avlu: fener, çeşme, altın.", "The courtyard at night: lantern, fountain, gold."),
             pal("#14233A", "#1D3436", "#08FFFFFF", "#22E9C27A", "#E9C27A", "#24E9C27A", "#14233A", "#EFE6D6", "#A7B3B8", "#5F6B78", "#5E9A95", false),
             Hero.ARCH, Deco.ARCADES, LS.ARCH, "#2C3F55", "#1A2A3D", "#EFE6D6", "#E9C27A", serif = true),
-        Skin("ink", T("Tinte & Papier", "Mürekkep ve kâğıt", "Ink & paper"),
-            T("Wie eine Buchseite bei Leselicht: Serifenschrift, viel Ruhe.", "Okuma ışığında kitap sayfası gibi.", "Like a book page under a reading lamp."),
-            pal("#232A3B", "#151922", "#00000000", "#00000000", "#C9B48A", "#0DFFFFFF", "#151922", "#E6E1D6", "#9A9FAE", "#5A5F6E", "#C9B48A", false),
-            Hero.SOFT, Deco.GRAIN, LS.ROWS, "#00000000", "#00000000", "#E6E1D6", "#C9B48A", serif = true),
     )
 
     /** Kurzname für die Listenart (lesbarer in der Tabelle oben). */
@@ -140,6 +121,7 @@ object SkinFonts {
     }
     fun digits(): Typeface = when {
         C.skin?.mono == true -> Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+        C.skin?.hero == Hero.LINE -> Typeface.create("sans-serif-medium", Typeface.BOLD)
         C.skin?.hero == Hero.TYPO || C.skin?.hero == Hero.FRAME -> Typeface.create("sans-serif", Typeface.BOLD)
         C.skin?.hero == Hero.DISC -> Typeface.create(Typeface.SERIF, Typeface.BOLD)
         C.skin?.hero == Hero.KISWA || C.skin?.hero == Hero.SOFT || C.skin?.hero == Hero.SUNARC -> Fonts.light
@@ -342,7 +324,7 @@ class HeroArtView(context: Context, private val skin: Skin) : View(context) {
                 c.drawLine(w * 0.15f, h * 0.9f, w * 0.85f, h * 0.9f, p)
                 p.color = C.gold; c.drawCircle(cx, h * 0.9f, d(3f), p)
             }
-            Hero.RING -> {}
+            Hero.RING, Hero.LINE -> {}
         }
     }
 }

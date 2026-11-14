@@ -112,6 +112,11 @@ class Prefs(context: Context) {
     var lang: Lang
         get() = Lang.byId(sp.getString("lang", Lang.DE.id))
         set(v) = sp.edit().putString("lang", v.id).apply()
+    /** Arabische Schrift anzeigen (Gebetsnamen, Hadith/Sure, Adhkar, Anleitung). */
+    var showArabic: Boolean
+        get() = sp.getBoolean("arabic", true)
+        set(v) = sp.edit().putBoolean("arabic", v).apply()
+
     var showTranslit: Boolean
         get() = sp.getBoolean("translit", true)
         set(v) = sp.edit().putBoolean("translit", v).apply()

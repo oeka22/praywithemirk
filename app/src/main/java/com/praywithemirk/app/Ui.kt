@@ -480,6 +480,22 @@ class PatternBackground(context: Context) : View(context) {
                 p.color = C.gold; p.textAlign = Paint.Align.CENTER; p.textSize = dp1 * 22
                 c.drawText("حَيَّ عَلَى الصَّلَاةِ", w / 2, bh * 0.7f, p)
             }
+            Deco.FANUS, Deco.MASHRABIYA -> {
+                // feines Girih-Muster, warmes Licht von oben, hängende Laterne(n) oben rechts
+                val wide = w > dp1 * 600
+                Orient.drawGirih(c, w, h, dp1 * (if (wide) 64f else 44f), C.pattern, dp1 * 1.1f)
+                val lamp = col(sk.heroBg)
+                Orient.glow(c, w * 0.5f, h * 0.3f, maxOf(w, h) * 0.45f, alpha(lamp, if (C.light) 60 else 40))
+                if (sk.deco == Deco.FANUS) {
+                    if (wide) {
+                        Orient.drawLantern(c, w - dp1 * 66, dp1 * 22, 1.25f, lamp, C.gold, dp1)
+                        Orient.drawLantern(c, w - dp1 * 130, dp1 * 8, 0.9f, lamp, C.gold, dp1)
+                    } else Orient.drawLantern(c, w - dp1 * 20, dp1 * 10, 0.75f, lamp, C.gold, dp1)
+                } else {
+                    if (wide) Orient.drawLantern(c, w - dp1 * 54, dp1 * 6, 0.8f, lamp, C.gold, dp1)
+                    else Orient.drawLantern(c, w - dp1 * 18, dp1 * 4, 0.6f, lamp, C.gold, dp1)
+                }
+            }
             Deco.PATTERN, Deco.NONE -> {}
         }
     }

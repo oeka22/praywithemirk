@@ -227,7 +227,61 @@ class SkinPreview(
     }
 
     /** Hauptgrafik links, Ort/Uhr/Hadith rechts, Gebetsliste unten. */
+    /** Vorschau Fanus/Mashrabiya: Zeile Uhr | Timer | Gebetszeit, Quadrat-Leiste, Hadith, Gebetszeiten. */
+    private fun drawLine(c: Canvas, w: Float, h: Float, mash: Boolean) {
+        val pad = w * 0.035f
+        val tilesH = h * 0.2f
+        var y = pad
+        fun tiles(top: Float) {
+            val gap = w * 0.012f
+            val tw = (w - pad * 2 - gap * 5) / 6
+            if (mash) { p.style = Paint.Style.STROKE; p.strokeWidth = d(1f); p.color = alpha(C.gold, 90)
+                c.drawRoundRect(pad - gap, top - gap, w - pad + gap, top + tilesH + gap, d(6f), d(6f), p); p.style = Paint.Style.FILL }
+            for (i in 0 until 6) {
+                val x = pad + i * (tw + gap)
+                p.color = if (i == 2) C.goldSoft else C.card
+                c.drawRoundRect(x, top, x + tw, top + tilesH, d(4f), d(4f), p)
+                p.color = if (i == 2) C.gold else C.cream
+                p.textAlign = Paint.Align.CENTER; p.typeface = SkinFonts.digits(); p.textSize = tilesH * 0.34f
+                c.drawText(arrayOf("6:01", "7:47", "12:09", "14:02", "16:22", "18:02")[i], x + tw / 2, top + tilesH * 0.72f, p)
+            }
+            p.textAlign = Paint.Align.LEFT
+        }
+        p.color = C.muted; c.drawRoundRect(pad, y, pad + w * 0.4f, y + h * 0.035f, 3f, 3f, p)
+        y += h * 0.07f
+        if (mash) { tiles(y); y += tilesH + h * 0.05f }
+        // Zeile
+        val rowH = h * 0.26f
+        Orient.glow(c, w / 2, y + rowH / 2, rowH * 1.1f, alpha(col(skin!!.heroBg), 90))
+        p.typeface = SkinFonts.digits()
+        p.color = C.cream; p.textSize = rowH * 0.42f; p.textAlign = Paint.Align.LEFT
+        c.drawText("13:03", pad, y + rowH * 0.85f, p)
+        p.color = C.gold; p.textAlign = Paint.Align.RIGHT
+        c.drawText("14:02", w - pad, y + rowH * 0.85f, p)
+        p.color = C.cream; p.textAlign = Paint.Align.CENTER; p.textSize = rowH * 0.95f
+        c.drawText("58:41", w / 2, y + rowH * 0.92f, p)
+        p.textAlign = Paint.Align.LEFT
+        y += rowH + h * 0.03f
+        // Leiste
+        val n = 24; val sq = (w - pad * 2) / n * 0.7f
+        for (i in 0 until n) {
+            p.color = if (i < 17) alpha(C.gold, 140 + i * 6) else alpha(C.cream, 40)
+            val x = pad + i * (w - pad * 2) / n
+            c.drawRoundRect(x, y, x + sq, y + sq, 1.5f, 1.5f, p)
+        }
+        y += sq + h * 0.04f
+        // Hadith
+        val hh = if (mash) h - y - pad else h * 0.18f
+        p.color = C.card; c.drawRoundRect(pad, y, w - pad, y + hh, d(5f), d(5f), p)
+        p.color = alpha(C.cream, 150)
+        c.drawRoundRect(pad * 2, y + hh * 0.35f, w - pad * 3, y + hh * 0.5f, 2f, 2f, p)
+        y += hh + h * 0.04f
+        if (!mash) tiles(y)
+        p.typeface = Typeface.DEFAULT
+    }
+
     private fun drawScreen(c: Canvas, w: Float, h: Float) {
+        if (skin?.hero == Hero.LINE) { drawLine(c, w, h, skin.deco == Deco.MASHRABIYA); return }
         val pad = h * 0.07f
         val listH = h * 0.24f
         val heroS = h - pad * 3 - listH

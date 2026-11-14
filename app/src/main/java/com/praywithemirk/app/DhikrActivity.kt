@@ -83,7 +83,7 @@ class DhikrActivity : Activity() {
         }
 
         content.removeAllViews()
-        content.addView(text(S.prayerArabic[prayer], 34f, C.gold, Fonts.serif, Gravity.CENTER), lp(top = dp(12)))
+        if (prefs.showArabic) content.addView(text(S.prayerArabic[prayer], 34f, C.gold, Fonts.serif, Gravity.CENTER), lp(top = dp(12)))
         content.addView(divider())
 
         // ---- Erklärung (ein-/ausklappbar, Zustand wird gemerkt)
@@ -130,7 +130,7 @@ class DhikrActivity : Activity() {
     private fun dhikrCard(d: Dhikr): View {
         val l = prefs.lang
         val box = card()
-        box.addView(arabic(d.arabic, 21f))
+        if (prefs.showArabic) box.addView(arabic(d.arabic, 21f))
         if (prefs.showTranslit) box.addView(text(d.translit, 14f, C.teal, Fonts.italic), lp(top = dp(10)))
         box.addView(text(d.meaning[l], 15f, C.cream, Fonts.light), lp(top = dp(10)))
         d.note?.let { box.addView(text(it[l], 13f, C.muted, Fonts.italic), lp(top = dp(8))) }

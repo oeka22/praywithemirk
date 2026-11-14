@@ -72,6 +72,9 @@ object S {
     // Einstellungen
     val language = T("Sprache", "Dil", "Language")
     val showTranslit = T("Umschrift anzeigen", "Okunuşu göster", "Show transliteration")
+    val showArabic = T("Arabische Schrift anzeigen", "Arapça yazıyı göster", "Show Arabic script")
+    val nowLabel = T("Jetzt", "Şimdi", "Now")
+    val atLabel = T("%s um", "%s vakti", "%s at")
     val location = T("Standort", "Konum", "Location")
     val useGps = T("Aktuellen Standort verwenden", "Mevcut konumu kullan", "Use current location")
     val searchCity = T("Stadt suchen", "Şehir ara", "Search city")
