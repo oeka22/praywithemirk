@@ -11,8 +11,8 @@ android {
         applicationId = "com.praywithemirk.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "6.2"
+        versionCode = 9
+        versionName = "6.3"
     }
 
     // Fester Signaturschlüssel: jede neue Version lässt sich über die alte installieren

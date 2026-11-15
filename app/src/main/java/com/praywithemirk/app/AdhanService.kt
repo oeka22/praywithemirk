@@ -45,8 +45,13 @@ class AdhanService : Service() {
             }
         }
 
-        fun stop(ctx: Context) {
-            ctx.startService(Intent(ctx, AdhanService::class.java).setAction(ACTION_STOP))
+        const val EXTRA_REASON = "reason"
+        // Gründe, warum ein Gebetsruf endet (für die Anzeige „Letzter Gebetsruf“ in den Einstellungen)
+        const val R_END = "end"; const val R_BUTTON = "button"; const val R_CLAP = "clap"
+        const val R_NOTIFICATION = "notification"; const val R_ERROR = "error"; const val R_MAX = "max"; const val R_TONE = "tone"
+
+        fun stop(ctx: Context, reason: String = R_BUTTON) {
+            ctx.startService(Intent(ctx, AdhanService::class.java).setAction(ACTION_STOP).putExtra(EXTRA_REASON, reason))
         }
     }
 
@@ -55,13 +60,15 @@ class AdhanService : Service() {
     private var focusRequest: AudioFocusRequest? = null
     private var savedAlarmVolume = -1
     private val handler = Handler(Looper.getMainLooper())
-    private val stopRunnable = Runnable { finish() }
+    private val stopRunnable = Runnable { finish(R_MAX) }
+    private val toneRunnable = Runnable { finish(R_TONE) }
+    private var startedAt = 0L
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
-            finish()
+            finish(intent.getStringExtra(EXTRA_REASON) ?: R_NOTIFICATION)
             return START_NOT_STICKY
         }
         prayer = intent?.getIntExtra(AlarmScheduler.EXTRA_PRAYER, P.DHUHR) ?: P.DHUHR
@@ -74,6 +81,7 @@ class AdhanService : Service() {
         } else {
             startForeground(Notifications.ID_ADHAN, n)
         }
+        startedAt = android.os.SystemClock.elapsedRealtime()
         play()
         // Ist die App gerade sichtbar (z. B. als Wanduhr), den Adhan-Bildschirm direkt öffnen.
         if (App.visibleActivities > 0) {
@@ -128,9 +136,9 @@ class AdhanService : Service() {
             val def = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             if (def == null || !tryPlay(def, attrs, loop = true)) {
-                finish(); return
+                finish(R_ERROR); return
             }
-            handler.postDelayed(stopRunnable, DEFAULT_TONE_MS)
+            handler.postDelayed(toneRunnable, DEFAULT_TONE_MS)
         }
         handler.postDelayed(stopRunnable, MAX_DURATION_MS)
     }
@@ -141,8 +149,8 @@ class AdhanService : Service() {
         mp.setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
         mp.setDataSource(applicationContext, uri)
         mp.isLooping = loop
-        mp.setOnCompletionListener { finish() }
-        mp.setOnErrorListener { _, _, _ -> finish(); true }
+        mp.setOnCompletionListener { finish(R_END) }
+        mp.setOnErrorListener { _, what, extra -> finish("$R_ERROR $what/$extra"); true }
         mp.prepare()
         mp.start()
         player = mp
@@ -188,9 +196,11 @@ class AdhanService : Service() {
 
     private var finished = false
 
-    private fun finish() {
+    private fun finish(reason: String) {
         if (finished) return
         finished = true
+        val secs = if (startedAt > 0) (android.os.SystemClock.elapsedRealtime() - startedAt) / 1000 else 0
+        Prefs(this).lastAdhanEnd = "$reason|$secs|${System.currentTimeMillis()}"
         playing = false
         sendBroadcast(Intent(AdhanActivity.ACTION_FINISHED).setPackage(packageName))
         handler.removeCallbacksAndMessages(null)

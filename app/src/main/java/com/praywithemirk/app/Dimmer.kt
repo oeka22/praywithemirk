@@ -30,8 +30,6 @@ class Dimmer(private val activity: Activity) : SensorEventListener {
 
         private val BRIGHTNESS = floatArrayOf(0.01f, 0.03f, 0.10f) // sehr dunkel, dunkel, gedämpft
         private val VEIL = floatArrayOf(0.55f, 0.30f, 0.0f)
-        private const val DARK_BELOW_LUX = 4f
-        private const val BRIGHT_ABOVE_LUX = 12f
     }
 
     var overlay: View? = null
@@ -65,8 +63,9 @@ class Dimmer(private val activity: Activity) : SensorEventListener {
         val night = when {
             forceBright || mode == 0 -> false
             mode == 2 && registered && lux >= 0f -> {
-                if (dark && lux > BRIGHT_ABOVE_LUX) dark = false
-                else if (!dark && lux < DARK_BELOW_LUX) dark = true
+                val limit = prefs.nightLux.toFloat()
+                if (dark && lux > limit * 2f + 3f) dark = false
+                else if (!dark && lux < limit) dark = true
                 dark
             }
             mode == 2 && registered -> false // noch kein Messwert

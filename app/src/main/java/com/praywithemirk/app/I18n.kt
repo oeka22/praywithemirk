@@ -262,6 +262,23 @@ object S {
     val nightLevel = T("Helligkeit nachts", "Gece parlaklığı", "Brightness at night")
     val nightLevels = listOf(T("Sehr dunkel", "Çok karanlık", "Very dark"), T("Dunkel", "Karanlık", "Dark"), T("Gedämpft", "Kısık", "Dimmed"))
     val noLightSensor = T("Dieses Gerät hat keinen Lichtsensor – es wird nach Uhrzeit gedimmt.", "Bu cihazda ışık sensörü yok – saate göre karartılır.", "This device has no light sensor – dimming by time instead.")
+    val sensorFound = T("Lichtsensor gefunden ✓", "Işık sensörü bulundu ✓", "Light sensor found ✓")
+    val nightLux = T("Dimmen unter (Lux)", "Şunun altında karart (lüks)", "Dim below (lux)")
+    val nightLuxHint = T(
+        "Tipp: Mach das Licht im Raum aus und schau, welcher Wert angezeigt wird. Stell die Grenze etwas darüber ein. Typisch: dunkler Raum 0–5 Lux, Lampe an 30–200 Lux.",
+        "İpucu: Odadaki ışığı kapat ve hangi değerin gösterildiğine bak. Sınırı bunun biraz üstüne ayarla. Tipik: karanlık oda 0–5 lüks, lamba açık 30–200 lüks.",
+        "Tip: switch off the room light and see which value is shown. Set the limit a little above it. Typical: dark room 0–5 lux, lamp on 30–200 lux."
+    )
+    val lastAdhan = T("Letzter Gebetsruf: nach %d s beendet – %s (%s)", "Son ezan: %d sn sonra bitti – %s (%s)", "Last adhan: ended after %d s – %s (%s)")
+    val endReasons = mapOf(
+        "end" to T("bis zum Ende abgespielt", "sonuna kadar çalındı", "played to the end"),
+        "button" to T("Stopp-Knopf", "Durdur düğmesi", "stop button"),
+        "clap" to T("durch Klatschen gestoppt", "alkışla durduruldu", "stopped by clapping"),
+        "notification" to T("über die Benachrichtigung gestoppt", "bildirimden durduruldu", "stopped via notification"),
+        "max" to T("Höchstdauer 7 Min. erreicht", "azami süre 7 dk doldu", "maximum 7 min reached"),
+        "tone" to T("Standard-Weckton nach 30 s beendet", "varsayılan alarm sesi 30 sn sonra bitti", "default alarm tone ended after 30 s"),
+        "error" to T("Fehler beim Abspielen der Audiodatei", "ses dosyası çalma hatası", "error playing the audio file"),
+    )
     val sensorNow = T("Lichtsensor jetzt: %d Lux", "Işık sensörü şu an: %d lüks", "Light sensor now: %d lux")
     val fullScreenInfo = T(
         "Vollbild beim Gebetsruf erlauben (zeigt die Glocke auch bei gesperrtem Bildschirm).",

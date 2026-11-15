@@ -65,10 +65,10 @@ object Orient {
     }
 
     /** Hängende Laterne (Fanus) mit Kette und Lichtschein. [top] = Oberkante des Laternenkörpers. */
-    fun drawLantern(c: Canvas, cx: Float, top: Float, scale: Float, lamp: Int, accent: Int, dp1: Float) {
+    fun drawLantern(c: Canvas, cx: Float, top: Float, scale: Float, lamp: Int, accent: Int, dp1: Float, halo: Boolean = true) {
         val w = 26f * scale * dp1
         val h = 44f * scale * dp1
-        glow(c, cx, top + h * 0.55f, 70f * scale * dp1, alpha(lamp, 120))
+        if (halo) glow(c, cx, top + h * 0.55f, 70f * scale * dp1, alpha(lamp, 120))
         val p = Paint(Paint.ANTI_ALIAS_FLAG)
         p.color = accent; p.strokeWidth = 1.5f * dp1
         c.drawLine(cx, 0f, cx, top, p)
@@ -148,12 +148,12 @@ class SegmentBar(context: Context, private val stars: Boolean) : View(context) {
 }
 
 /** Hintergrund der Timer-Zeile: warmer Lichtschein in der Mitte, optional Spitzbogen mit Stern (Mashrabiya). */
-class TimerGlowDrawable(private val lamp: Int, private val accent: Int, private val arch: Boolean, private val dp1: Float) : Drawable() {
+class TimerGlowDrawable(private val lamp: Int, private val accent: Int, private val arch: Boolean, private val dp1: Float, private val glow: Boolean = true) : Drawable() {
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
     override fun draw(c: Canvas) {
         val b = bounds
         val cx = b.exactCenterX(); val cy = b.exactCenterY()
-        Orient.glow(c, cx, cy, min(b.width() * 0.32f, b.height() * 1.4f), alpha(lamp, 95))
+        if (glow) Orient.glow(c, cx, cy, min(b.width() * 0.32f, b.height() * 1.4f), alpha(lamp, 95))
         if (!arch) return
         val aw = min(b.width() * 0.42f, b.height() * 2.3f)
         val l = cx - aw / 2; val r = cx + aw / 2

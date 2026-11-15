@@ -42,6 +42,8 @@ class Skin(
     val alt: String,
     val serif: Boolean = false,
     val mono: Boolean = false,
+    /** Schlicht: kein Lichtschein hinter dem Timer, Timer nicht fett (Schwarz-Varianten). */
+    val plain: Boolean = false,
 )
 
 object Skins {
@@ -65,6 +67,10 @@ object Skins {
             T("Laternenlicht, dunkel: Petrol-Nacht mit Laternen-Bernstein.", "Fener ışığı, koyu: petrol gecesi ve kehribar.", "Lantern light, dark: petrol night with lantern amber."),
             pal("#0D1A20", "#1C1814", "#0FFFF0D7", "#24FFE1B4", "#E9AE5A", "#2EE9AE5A", "#0D1A20", "#F3EBDD", "#A9B3AE", "#5E7A80", "#7FC8BE", false, "#14E9AE5A"),
             Hero.LINE, Deco.FANUS, LS.TILES, "#FFA940", "#14252B", "#F3EBDD", "#7FC8BE"),
+        Skin("fanus_black", T("Fanus · Schwarz", "Fanus · Siyah", "Fanus · Black"),
+            T("Ganz in Schwarz, ohne Lichtschein, Timer in normaler Schrift.", "Tamamen siyah, ışık efekti yok, sayaç normal yazı.", "All black, no glow, timer in regular weight."),
+            pal("#000000", "#000000", "#0DFFFFFF", "#1FFFFFFF", "#D9A55A", "#26D9A55A", "#000000", "#ECE5D8", "#8E8A84", "#4A4744", "#7FC8BE", false, "#0CD9A55A"),
+            Hero.LINE, Deco.FANUS, LS.TILES, "#B9853F", "#000000", "#ECE5D8", "#7FC8BE", plain = true),
         Skin("mash_light", T("Mashrabiya · Morgenlicht", "Meşrebiye · Sabah ışığı", "Mashrabiya · Morning light"),
             T("Gitterfenster, hell: Gebetszeiten oben im Gitterband, Spitzbogen hinter dem Timer.", "Kafes pencere, açık: vakitler üstte kafes bandında.", "Lattice window, bright: prayer times on top in a lattice band."),
             pal("#FBF3E4", "#F1DFC0", "#B8FFFBF3", "#FFE2C99E", "#B0651C", "#33D69640", "#FFFFFF", "#3A2717", "#735A3F", "#A08A6E", "#8C4A22", true, "#29A06828"),
@@ -77,6 +83,10 @@ object Skins {
             T("Gitterfenster, dunkel: Petrol-Nacht, warmes Laternenlicht.", "Kafes pencere, koyu: petrol gecesi, sıcak fener ışığı.", "Lattice window, dark: petrol night, warm lantern light."),
             pal("#0D1A20", "#1C1814", "#0FFFF0D7", "#24FFE1B4", "#E9AE5A", "#2EE9AE5A", "#0D1A20", "#F3EBDD", "#A9B3AE", "#5E7A80", "#7FC8BE", false, "#14E9AE5A"),
             Hero.LINE, Deco.MASHRABIYA, LS.TILES, "#FFA940", "#14252B", "#F3EBDD", "#7FC8BE"),
+        Skin("mash_black", T("Mashrabiya · Schwarz", "Meşrebiye · Siyah", "Mashrabiya · Black"),
+            T("Ganz in Schwarz, ohne Lichtschein, Timer in normaler Schrift.", "Tamamen siyah, ışık efekti yok, sayaç normal yazı.", "All black, no glow, timer in regular weight."),
+            pal("#000000", "#000000", "#0DFFFFFF", "#1FFFFFFF", "#D9A55A", "#26D9A55A", "#000000", "#ECE5D8", "#8E8A84", "#4A4744", "#7FC8BE", false, "#0CD9A55A"),
+            Hero.LINE, Deco.MASHRABIYA, LS.TILES, "#B9853F", "#000000", "#ECE5D8", "#7FC8BE", plain = true),
         Skin("typo", T("Typografie pur", "Saf tipografi", "Pure typography"),
             T("Plakat-Stil: riesige fette Ziffern, ein roter Akzent.", "Afiş tarzı: dev kalın rakamlar, tek kırmızı vurgu.", "Poster style: huge bold digits, one red accent."),
             pal("#F4F1EA", "#EFEBE2", "#00000000", "#22000000", "#111111", "#14000000", "#FFFFFF", "#111111", "#777777", "#BBBBBB", "#D1452F", true),

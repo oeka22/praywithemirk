@@ -258,7 +258,7 @@ class SkinPreview(
         if (mash) { tiles(y); y += tilesH + h * 0.05f }
         // Zeile
         val rowH = h * 0.26f
-        Orient.glow(c, w / 2, y + rowH / 2, rowH * 1.1f, alpha(col(skin!!.heroBg), 90))
+        if (!skin!!.plain) Orient.glow(c, w / 2, y + rowH / 2, rowH * 1.1f, alpha(col(skin.heroBg), 90))
         p.typeface = SkinFonts.digits()
         p.color = C.cream; p.textSize = rowH * 0.42f; p.textAlign = Paint.Align.LEFT
         c.drawText("13:03", pad, y + rowH * 0.85f, p)

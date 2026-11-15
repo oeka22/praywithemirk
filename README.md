@@ -21,10 +21,12 @@ zur Gebetszeit, Sunnah-Adhkar zu jedem Gebet und zweimal täglich einem Hadith b
 - **Design-Seite** (Einstellungen › Design › „Alle Designs ansehen“):
   - **Klassisch** mit Ring: 5 Farben – Nacht (Standard), Mitternacht, Abenddämmerung, Sandstein (hell), Minze (hell) – und 4 Stile.
   - **Fanus** („Laternenlicht“) und **Mashrabiya** („Gitterfenster“), je in Morgenlicht (hell), Abendgold (mittel), Laternennacht (dunkel): eine Zeile Uhr | Timer | Gebetszeit, leuchtende Quadrat-Leiste, orientalische Sterne, Laternen und Gitter.
+  - Fanus und Mashrabiya zusätzlich ganz in **Schwarz** (ohne Lichtschein, Timer in normaler Schrift).
   - Typografie pur, Mondnacht, Andalus, Kaminabend, Andalus bei Nacht.
 - **Gebetsruf**: Die Glocke wird 10 Sekunden gezeigt, danach geht es zurück zur Startseite; der Gebetsruf läuft bis zum Ende weiter.
   Stoppen jederzeit über die Leiste „Gebetsruf stoppen“ auf der Startseite, die Benachrichtigung oder 3× Klatschen.
-- **Nachtmodus** (Einstellungen): Startseite nachts stark abdunkeln – nach Uhrzeit oder per Lichtsensor, in drei Stufen.
+- **Nachtmodus** (Einstellungen): Startseite nachts stark abdunkeln – nach Uhrzeit oder per Lichtsensor (mit Live-Anzeige in Lux und einstellbarer Grenze), in drei Stufen.
+- In den Einstellungen steht beim Gebetsruf, wie lange der letzte lief und warum er endete (zur Fehlersuche).
 - Timer passt sich bei Stunden (H:MM:SS) automatisch dem Platz an.
 - **Arabische Schrift** und **Umschrift** in den Einstellungen getrennt ein-/ausschaltbar (Umschrift jetzt auch für alle Hadithe; eigene Quellen mit Feld „translit“).
 - **Gebetsruf**: läuft als Vordergrund-Dienst auch bei gesperrtem Bildschirm, mit „Stopp“-Knopf

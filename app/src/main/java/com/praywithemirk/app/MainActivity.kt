@@ -373,7 +373,7 @@ class MainActivity : Activity() {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = if (mash) Gravity.CENTER_VERTICAL else Gravity.BOTTOM
-            background = TimerGlowDrawable(lamp, C.gold, mash, dp(1f).toFloat())
+            background = TimerGlowDrawable(lamp, C.gold, mash, dp(1f).toFloat(), glow = !sk.plain)
         }
         fun label(t: String, g: Int) = text(t, labelSp, C.muted, Fonts.bold, g).apply { letterSpacing = 0.14f; maxLines = 1 }
         val left = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.START }
@@ -393,13 +393,13 @@ class MainActivity : Activity() {
         nameRow.addView(nextArabic, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(10f * k) })
         center.addView(nameRow)
         // Timer: Größe wie entworfen bei MM:SS; bei H:MM:SS schrumpft die Schrift automatisch in den vorgesehenen Raum
-        bigValue = text("", timerSp, C.cream, SkinFonts.digits(), Gravity.CENTER).apply {
+        bigValue = text("", timerSp, C.cream, if (sk.plain) Fonts.regular else SkinFonts.digits(), Gravity.CENTER).apply {
             includeFontPadding = false
             fontFeatureSettings = "tnum"
             maxLines = 1
             letterSpacing = if (wide) -0.02f else -0.04f
             setAutoSizeTextTypeUniformWithConfiguration(12, timerSp.toInt().coerceAtLeast(13), 1, android.util.TypedValue.COMPLEX_UNIT_SP)
-            setShadowLayer(dp(18f * k).toFloat(), 0f, 0f, alpha(lamp, if (C.light) 120 else 150))
+            if (!sk.plain) setShadowLayer(dp(18f * k).toFloat(), 0f, 0f, alpha(lamp, if (C.light) 120 else 150))
         }
         center.addView(bigValue, LinearLayout.LayoutParams(-1, dp(timerSp * 0.98f)))
         row.addView(center, LinearLayout.LayoutParams(0, -2, 1f))
@@ -570,7 +570,7 @@ class MainActivity : Activity() {
             adhanClapInfo?.text = S.clapHint[l]
             clap = ClapDetector(
                 onClap = { n -> adhanClapInfo?.text = S.clapHint[l] + "   " + "●".repeat(n) + "○".repeat(3 - n) },
-                onTriple = { AdhanService.stop(this) }
+                onTriple = { AdhanService.stop(this, AdhanService.R_CLAP) }
             ).also { it.start() }
         } else if (!playing && clap != null) {
             clap?.stop(); clap = null

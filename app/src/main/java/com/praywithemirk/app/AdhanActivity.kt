@@ -110,7 +110,7 @@ class AdhanActivity : Activity() {
         col.addView(text(S.timeFor[l].format(S.prayerNames[prayer][l]), 26f, C.cream, Fonts.light, Gravity.CENTER), lp(top = dp(4)))
         col.addView(text(java.time.LocalTime.now().withSecond(0).withNano(0).toString(), 18f, C.muted, Fonts.light, Gravity.CENTER), lp(top = dp(2)))
 
-        col.addView(pill("■  " + S.stop[l], filled = true) { stopAdhan() }.apply {
+        col.addView(pill("■  " + S.stop[l], filled = true) { stopAdhan(AdhanService.R_BUTTON) }.apply {
             textSize = 18f
             setPadding(dp(36), dp(14), dp(36), dp(14))
         }, LinearLayout.LayoutParams(-2, -2).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = dp(32) })
@@ -145,7 +145,7 @@ class AdhanActivity : Activity() {
             clapInfo.text = S.clapHint[l]
             clap = ClapDetector(
                 onClap = { n -> clapInfo.text = S.clapHint[l] + "   " + "●".repeat(n) + "○".repeat(3 - n) },
-                onTriple = { stopAdhan() }
+                onTriple = { stopAdhan(AdhanService.R_CLAP) }
             ).also { it.start() }
         } else clapInfo.text = ""
     }
@@ -161,8 +161,8 @@ class AdhanActivity : Activity() {
         super.onDestroy()
     }
 
-    private fun stopAdhan() {
-        AdhanService.stop(this)
+    private fun stopAdhan(reason: String) {
+        AdhanService.stop(this, reason)
         finish()
     }
 }
@@ -261,8 +261,17 @@ class ClapDetector(private val onClap: (Int) -> Unit, private val onTriple: () -
             } catch (e: Exception) { null }
             if (rec == null || rec.state != AudioRecord.STATE_INITIALIZED) { running = false; return@Thread }
             val buf = ShortArray(512) // ca. 32 ms
-            var background = 300.0
-            var lastClap = 0L
+            // Der Gebetsruf selbst ist laut und gleichmäßig. Ein Klatscher dagegen ist ein sehr kurzer,
+            // plötzlicher Knall, der sofort wieder abklingt. Nur solche Spitzen zählen, und erst nach einer
+            // Einlaufzeit, in der die Lautstärke des Gebetsrufs als Grundpegel gelernt wird.
+            val warmUpUntil = SystemClock.uptimeMillis() + 2000
+            var background = 0.0
+            var warmFrames = 0
+            var prevRms = 0.0
+            var candRms = 0.0       // Kandidat: plötzliche Spitze, wartet auf schnelles Abklingen
+            var candAt = 0L
+            var candFrames = 0
+            var candMin = Double.MAX_VALUE
             val claps = ArrayList<Long>()
             try {
                 rec.startRecording()
@@ -273,21 +282,41 @@ class ClapDetector(private val onClap: (Int) -> Unit, private val onTriple: () -
                     for (i in 0 until n) { val v = abs(buf[i].toInt()); if (v > peak) peak = v; sum += v.toDouble() * v }
                     val rms = sqrt(sum / n)
                     val now = SystemClock.uptimeMillis()
-                    val isClap = peak > 9000 && rms > background * 3.5 && now - lastClap > 180
-                    if (isClap) {
-                        lastClap = now
-                        claps.add(now)
-                        claps.removeAll { now - it > 3000 }
-                        val count = claps.size
-                        main.post { onClap(minOf(count, 3)) }
-                        if (count >= 3) {
-                            running = false
-                            main.post { onTriple() }
-                        }
-                    } else {
-                        // langsam anpassen, Spitzen nicht einrechnen
-                        background = background * 0.95 + rms * 0.05
+                    if (now < warmUpUntil) {
+                        // Grundpegel (inkl. Gebetsruf) lernen
+                        warmFrames++
+                        background += (rms - background) / warmFrames
+                        prevRms = rms
+                        continue
                     }
+                    if (candRms > 0.0) {
+                        candMin = minOf(candMin, rms)
+                        candFrames++
+                        if (candFrames >= 3) {
+                            if (candMin < candRms * 0.5) {
+                                // echter Klatscher: kurz und abklingend
+                                if (claps.isNotEmpty() && candAt - claps.last() > 1300) claps.clear()
+                                if (claps.isEmpty() || candAt - claps.last() >= 200) {
+                                    claps.add(candAt)
+                                    val count = claps.size
+                                    main.post { onClap(minOf(count, 3)) }
+                                    if (count >= 3) {
+                                        running = false
+                                        main.post { onTriple() }
+                                    }
+                                }
+                            }
+                            candRms = 0.0
+                        }
+                    } else if (peak > 12000 && rms > maxOf(background, 200.0) * 4.5 && rms > prevRms * 3.0) {
+                        candRms = rms; candAt = now; candFrames = 0; candMin = Double.MAX_VALUE
+                    }
+                    if (claps.isNotEmpty() && now - claps.last() > 1300 && candRms == 0.0) {
+                        claps.clear(); main.post { onClap(0) }
+                    }
+                    // Grundpegel langsam nachführen; Spitzen nur begrenzt einrechnen
+                    background = background * 0.97 + minOf(rms, background * 2.5 + 50.0) * 0.03
+                    prevRms = rms
                 }
             } catch (_: Exception) {
             } finally {

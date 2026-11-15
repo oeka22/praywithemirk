@@ -112,6 +112,15 @@ class Prefs(context: Context) {
     var lang: Lang
         get() = Lang.byId(sp.getString("lang", Lang.DE.id))
         set(v) = sp.edit().putString("lang", v.id).apply()
+    /** „Grund|Sekunden|Zeitpunkt“ des zuletzt beendeten Gebetsrufs (zur Fehlersuche). */
+    var lastAdhanEnd: String
+        get() = sp.getString("last_adhan_end", "") ?: ""
+        set(v) = sp.edit().putString("last_adhan_end", v).apply()
+    /** Lichtsensor: unter diesem Wert (Lux) wird gedimmt. */
+    var nightLux: Int
+        get() = sp.getInt("night_lux", 5)
+        set(v) = sp.edit().putInt("night_lux", v).apply()
+
     /** Nachtmodus: 0 = aus, 1 = nach Uhrzeit, 2 = Lichtsensor. */
     var nightMode: Int
         get() = sp.getInt("night_mode", 0)

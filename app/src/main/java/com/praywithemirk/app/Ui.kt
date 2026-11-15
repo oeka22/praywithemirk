@@ -485,15 +485,15 @@ class PatternBackground(context: Context) : View(context) {
                 val wide = w > dp1 * 600
                 Orient.drawGirih(c, w, h, dp1 * (if (wide) 64f else 44f), C.pattern, dp1 * 1.1f)
                 val lamp = col(sk.heroBg)
-                Orient.glow(c, w * 0.5f, h * 0.3f, maxOf(w, h) * 0.45f, alpha(lamp, if (C.light) 60 else 40))
+                if (!sk.plain) Orient.glow(c, w * 0.5f, h * 0.3f, maxOf(w, h) * 0.45f, alpha(lamp, if (C.light) 60 else 40))
                 if (sk.deco == Deco.FANUS) {
                     if (wide) {
-                        Orient.drawLantern(c, w - dp1 * 66, dp1 * 22, 1.25f, lamp, C.gold, dp1)
-                        Orient.drawLantern(c, w - dp1 * 130, dp1 * 8, 0.9f, lamp, C.gold, dp1)
-                    } else Orient.drawLantern(c, w - dp1 * 20, dp1 * 10, 0.75f, lamp, C.gold, dp1)
+                        Orient.drawLantern(c, w - dp1 * 66, dp1 * 22, 1.25f, lamp, C.gold, dp1, halo = !sk.plain)
+                        Orient.drawLantern(c, w - dp1 * 130, dp1 * 8, 0.9f, lamp, C.gold, dp1, halo = !sk.plain)
+                    } else Orient.drawLantern(c, w - dp1 * 20, dp1 * 10, 0.75f, lamp, C.gold, dp1, halo = !sk.plain)
                 } else {
-                    if (wide) Orient.drawLantern(c, w - dp1 * 54, dp1 * 6, 0.8f, lamp, C.gold, dp1)
-                    else Orient.drawLantern(c, w - dp1 * 18, dp1 * 4, 0.6f, lamp, C.gold, dp1)
+                    if (wide) Orient.drawLantern(c, w - dp1 * 54, dp1 * 6, 0.8f, lamp, C.gold, dp1, halo = !sk.plain)
+                    else Orient.drawLantern(c, w - dp1 * 18, dp1 * 4, 0.6f, lamp, C.gold, dp1, halo = !sk.plain)
                 }
             }
             Deco.PATTERN, Deco.NONE -> {}

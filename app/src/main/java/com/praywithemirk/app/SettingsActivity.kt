@@ -63,7 +63,24 @@ class SettingsActivity : Activity() {
 
     private var shownSkin = ""
 
+    private var luxView: TextView? = null
+    private val luxListener = object : android.hardware.SensorEventListener {
+        override fun onSensorChanged(e: android.hardware.SensorEvent) {
+            luxView?.text = S.sensorNow[prefs.lang].format(e.values[0].toInt())
+        }
+        override fun onAccuracyChanged(s: android.hardware.Sensor?, a: Int) {}
+    }
+
+    override fun onPause() {
+        super.onPause()
+        preview(null)
+        getSystemService(android.hardware.SensorManager::class.java)?.unregisterListener(luxListener)
+    }
+
     override fun onResume() {
+        getSystemService(android.hardware.SensorManager::class.java)?.let { sm ->
+            sm.getDefaultSensor(android.hardware.Sensor.TYPE_LIGHT)?.let { sm.registerListener(luxListener, it, android.hardware.SensorManager.SENSOR_DELAY_NORMAL) }
+        }
         super.onResume()
         if (shownSkin.isNotEmpty() && shownSkin != prefs.skin) { shownSkin = prefs.skin; recreate(); return }
         shownSkin = prefs.skin
@@ -235,6 +252,12 @@ class SettingsActivity : Activity() {
                 prefs.reminderMinutes = it; changed()
             }, lp(top = dp(14)))
 
+            prefs.lastAdhanEnd.split("|").takeIf { it.size == 3 }?.let { p ->
+                val reason = S.endReasons[p[0].substringBefore(" ")]?.get(l) ?: p[0]
+                val whenTxt = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT).format(java.util.Date(p[2].toLongOrNull() ?: 0L))
+                addView(text(S.lastAdhan[l].format(p[1].toIntOrNull() ?: 0, reason + if (p[0].contains(" ")) " " + p[0].substringAfter(" ") else "", whenTxt),
+                    12f, C.muted, Fonts.light), lp(top = dp(10)))
+            }
             addView(switchRow(S.clapSetting[l], prefs.clapToStop) { on ->
                 if (on && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                     requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), reqMicClap)
@@ -351,6 +374,13 @@ class SettingsActivity : Activity() {
             val hasSensor = Dimmer.hasLightSensor(this@SettingsActivity)
             addView(segmented(S.nightModes.map { it[l] }, prefs.nightMode) { prefs.nightMode = it; render() }, lp(top = dp(12)))
             if (prefs.nightMode == 2 && !hasSensor) addView(text(S.noLightSensor[l], 13f, C.gold, Fonts.regular), lp(top = dp(8)))
+            if (prefs.nightMode == 2 && hasSensor) {
+                addView(text(S.sensorFound[l], 13f, C.teal, Fonts.regular), lp(top = dp(8)))
+                luxView = text(S.sensorNow[l].format(0) + " …", 15f, C.cream, Fonts.medium)
+                addView(luxView, lp(top = dp(4)))
+                addView(stepper(S.nightLux[l], prefs.nightLux, 1, 100, 1) { prefs.nightLux = it }, lp(top = dp(6)))
+                addView(text(S.nightLuxHint[l], 12f, C.muted, Fonts.light))
+            }
             if (prefs.nightMode == 1 || (prefs.nightMode == 2 && !hasSensor)) {
                 addView(stepper(S.nightFrom[l], prefs.nightFrom, 0, 23, 1) { prefs.nightFrom = it }, lp(top = dp(8)))
                 addView(stepper(S.nightTo[l], prefs.nightTo, 0, 23, 1) { prefs.nightTo = it })
@@ -720,10 +750,6 @@ class SettingsActivity : Activity() {
         } catch (_: Exception) {}
     }
 
-    override fun onPause() {
-        super.onPause()
-        preview(null)
-    }
 
     /** Dialog für einen direkten Audio-Link. */
     private fun askLink(slot: Int) {
