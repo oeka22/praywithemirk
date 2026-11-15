@@ -244,10 +244,25 @@ object S {
     val clapHint = T("3× klatschen zum Stoppen", "Durdurmak için 3 kez alkışla", "Clap 3× to stop")
     val clapSetting = T("Gebetsruf durch 3× Klatschen stoppen", "Ezanı 3 kez alkışlayarak durdur", "Stop the adhan by clapping 3×")
     val clapInfo = T(
-        "Funktioniert, solange der Gebetsruf-Bildschirm angezeigt wird. Das Mikrofon hört nur in dieser Zeit zu; nichts wird gespeichert. Bei sehr lautem Gebetsruf direkt neben dem Handy kann die Erkennung unzuverlässig sein.",
-        "Ezan ekranı açıkken çalışır. Mikrofon yalnızca bu sırada dinler; hiçbir şey kaydedilmez. Ezan telefonun hemen yanında çok yüksek sesle çalıyorsa algılama güvenilir olmayabilir.",
-        "Works while the adhan screen is shown. The microphone only listens during that time; nothing is stored. With a very loud adhan right next to the phone detection may be unreliable."
+        "Funktioniert, solange der Gebetsruf läuft und die App (Glocke oder Startseite) sichtbar ist. Das Mikrofon hört nur in dieser Zeit zu; nichts wird gespeichert. Bei sehr lautem Gebetsruf direkt neben dem Gerät kann die Erkennung unzuverlässig sein.",
+        "Ezan çalarken ve uygulama (zil veya ana ekran) görünürken çalışır. Mikrofon yalnızca bu sırada dinler; hiçbir şey kaydedilmez. Ezan cihazın hemen yanında çok yüksek sesle çalıyorsa algılama güvenilir olmayabilir.",
+        "Works while the adhan is playing and the app (bell or home screen) is visible. The microphone only listens during that time; nothing is stored. With a very loud adhan right next to the device detection may be unreliable."
     )
+    val stopAdhan = T("Gebetsruf stoppen", "Ezanı durdur", "Stop adhan")
+    // Nachtmodus
+    val nightSection = T("Nachtmodus (Bildschirm dimmen)", "Gece modu (ekranı karart)", "Night mode (dim the screen)")
+    val nightInfo = T(
+        "Für die Wanduhr, die dauerhaft an ist: Nachts wird die Startseite stark abgedunkelt, damit sie im dunklen Raum kein unnötiges Licht macht. Die Anzeige bleibt lesbar und an. „Nach Uhrzeit“ dimmt im eingestellten Zeitraum. „Helligkeitssensor“ dimmt automatisch, sobald es im Raum dunkel ist (nur wenn das Gerät einen Lichtsensor hat). Beim Gebetsruf wird die Glocke immer in normaler Helligkeit gezeigt.",
+        "Sürekli açık duvar saati için: Gece ana ekran belirgin şekilde karartılır, karanlık odada gereksiz ışık yapmaz. Ekran okunabilir ve açık kalır. „Saate göre“ ayarlanan zaman aralığında karartır. „Işık sensörü“ oda karardığında otomatik karartır (cihazda ışık sensörü varsa). Ezan sırasında zil her zaman normal parlaklıkta gösterilir.",
+        "For the wall clock that is always on: at night the home screen is dimmed strongly so it does not light up a dark room. The display stays on and readable. “By time” dims within the set period. “Light sensor” dims automatically as soon as the room is dark (only if the device has a light sensor). During the adhan the bell is always shown at normal brightness."
+    )
+    val nightModes = listOf(T("Aus", "Kapalı", "Off"), T("Nach Uhrzeit", "Saate göre", "By time"), T("Lichtsensor", "Işık sensörü", "Light sensor"))
+    val nightFrom = T("Dimmen ab (Uhr)", "Karartma başlangıcı (saat)", "Dim from (hour)")
+    val nightTo = T("Dimmen bis (Uhr)", "Karartma bitişi (saat)", "Dim until (hour)")
+    val nightLevel = T("Helligkeit nachts", "Gece parlaklığı", "Brightness at night")
+    val nightLevels = listOf(T("Sehr dunkel", "Çok karanlık", "Very dark"), T("Dunkel", "Karanlık", "Dark"), T("Gedämpft", "Kısık", "Dimmed"))
+    val noLightSensor = T("Dieses Gerät hat keinen Lichtsensor – es wird nach Uhrzeit gedimmt.", "Bu cihazda ışık sensörü yok – saate göre karartılır.", "This device has no light sensor – dimming by time instead.")
+    val sensorNow = T("Lichtsensor jetzt: %d Lux", "Işık sensörü şu an: %d lüks", "Light sensor now: %d lux")
     val fullScreenInfo = T(
         "Vollbild beim Gebetsruf erlauben (zeigt die Glocke auch bei gesperrtem Bildschirm).",
         "Ezan sırasında tam ekrana izin ver (kilitli ekranda da zili gösterir).",

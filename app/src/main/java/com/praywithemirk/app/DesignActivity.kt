@@ -63,6 +63,12 @@ class DesignActivity : Activity() {
         col.addView(head)
         col.addView(text(S.designIntro[l], 14f, C.muted, Fonts.light), lp(top = dp(8)))
 
+        // ---------------- Schriftgröße der Startseite (gilt für alle Designs)
+        section(S.mainScale[l])
+        col.addView(card(14).apply {
+            addView(segmented(S.mainScales.map { it[l] }, prefs.mainScale) { prefs.mainScale = it; apply() })
+        }, lp(top = dp(8)))
+
         val cols = when {
             resources.configuration.screenWidthDp >= 1000 -> 4
             resources.configuration.screenWidthDp >= 600 -> 3

@@ -18,9 +18,37 @@ class DailyItem(
  */
 object DailyContent {
 
+    /** Umschrift der Hadithe (Schlüssel = arabischer Text). */
+    private val HADITH_TR: Map<String, String> = mapOf(
+        "إِنَّمَا الْأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى" to "Innamal-aʿmalu bin-niyyat, wa innama li-kullim-ri'in ma nawa",
+        "لَا يُؤْمِنُ أَحَدُكُمْ حَتَّى يُحِبَّ لِأَخِيهِ مَا يُحِبُّ لِنَفْسِهِ" to "La yu'minu ahadukum hatta yuhibba li-akhihi ma yuhibbu li-nafsih",
+        "مَنْ كَانَ يُؤْمِنُ بِاللَّهِ وَالْيَوْمِ الْآخِرِ فَلْيَقُلْ خَيْرًا أَوْ لِيَصْمُتْ" to "Man kana yu'minu billahi wal-yawmil-akhiri fal-yaqul khayran aw li-yasmut",
+        "الطُّهُورُ شَطْرُ الْإِيمَانِ" to "At-tuhuru shatrul-iman",
+        "أَحَبُّ الْأَعْمَالِ إِلَى اللَّهِ أَدْوَمُهَا وَإِنْ قَلَّ" to "Ahabbul-aʿmali ilallahi adwamuha wa in qall",
+        "الْكَلِمَةُ الطَّيِّبَةُ صَدَقَةٌ" to "Al-kalimatut-tayyibatu sadaqah",
+        "تَبَسُّمُكَ فِي وَجْهِ أَخِيكَ لَكَ صَدَقَةٌ" to "Tabassumuka fi wajhi akhika laka sadaqah",
+        "لَيْسَ الشَّدِيدُ بِالصُّرَعَةِ، إِنَّمَا الشَّدِيدُ الَّذِي يَمْلِكُ نَفْسَهُ عِنْدَ الْغَضَبِ" to "Laysash-shadidu bis-surʿah, innamash-shadidul-ladhi yamliku nafsahu ʿindal-ghadab",
+        "كَلِمَتَانِ خَفِيفَتَانِ عَلَى اللِّسَانِ، ثَقِيلَتَانِ فِي الْمِيزَانِ، حَبِيبَتَانِ إِلَى الرَّحْمَنِ: سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ" to "Kalimatani khafifatani ʿalal-lisan, thaqilatani fil-mizan, habibatani ilar-rahman: Subhanallahi wa bihamdih, subhanallahil-ʿazim",
+        "مِنْ حُسْنِ إِسْلَامِ الْمَرْءِ تَرْكُهُ مَا لَا يَعْنِيهِ" to "Min husni islamil-mar'i tarkuhu ma la yaʿnih",
+        "الدِّينُ النَّصِيحَةُ" to "Ad-dinun-nasihah",
+        "اتَّقِ اللَّهَ حَيْثُمَا كُنْتَ، وَأَتْبِعِ السَّيِّئَةَ الْحَسَنَةَ تَمْحُهَا، وَخَالِقِ النَّاسَ بِخُلُقٍ حَسَنٍ" to "Ittaqillaha haythuma kunt, wa atbiʿis-sayyi'atal-hasanata tamhuha, wa khaliqin-nasa bi-khuluqin hasan",
+        "الْمُسْلِمُ مَنْ سَلِمَ الْمُسْلِمُونَ مِنْ لِسَانِهِ وَيَدِهِ" to "Al-muslimu man salimal-muslimuna min lisanihi wa yadih",
+        "أَقْرَبُ مَا يَكُونُ الْعَبْدُ مِنْ رَبِّهِ وَهُوَ سَاجِدٌ، فَأَكْثِرُوا الدُّعَاءَ" to "Aqrabu ma yakunul-ʿabdu min rabbihi wa huwa sajid, fa-aktharud-duʿa'",
+        "الصَّلَوَاتُ الْخَمْسُ، وَالْجُمُعَةُ إِلَى الْجُمُعَةِ، كَفَّارَةٌ لِمَا بَيْنَهُنَّ، مَا لَمْ تُغْشَ الْكَبَائِرُ" to "As-salawatul-khams, wal-jumuʿatu ilal-jumuʿah, kaffaratun lima baynahunn, ma lam tughshal-kaba'ir",
+        "مَنْ سَلَكَ طَرِيقًا يَلْتَمِسُ فِيهِ عِلْمًا، سَهَّلَ اللَّهُ لَهُ بِهِ طَرِيقًا إِلَى الْجَنَّةِ" to "Man salaka tariqan yaltamisu fihi ʿilman, sahhalallahu lahu bihi tariqan ilal-jannah",
+        "إِنَّ اللَّهَ لَا يَنْظُرُ إِلَى صُوَرِكُمْ وَأَمْوَالِكُمْ، وَلَكِنْ يَنْظُرُ إِلَى قُلُوبِكُمْ وَأَعْمَالِكُمْ" to "Innallaha la yanzuru ila suwarikum wa amwalikum, wa lakin yanzuru ila qulubikum wa aʿmalikum",
+        "خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ" to "Khayrukum man taʿallamal-qur'ana wa ʿallamah",
+        "الرَّاحِمُونَ يَرْحَمُهُمُ الرَّحْمَنُ، ارْحَمُوا مَنْ فِي الْأَرْضِ يَرْحَمْكُمْ مَنْ فِي السَّمَاءِ" to "Ar-rahimuna yarhamuhumur-rahman, irhamu man fil-ardi yarhamkum man fis-sama'",
+        "يَسِّرُوا وَلَا تُعَسِّرُوا، وَبَشِّرُوا وَلَا تُنَفِّرُوا" to "Yassiru wa la tuʿassiru, wa bashshiru wa la tunaffiru",
+        "مَا نَقَصَتْ صَدَقَةٌ مِنْ مَالٍ" to "Ma naqasat sadaqatun min mal",
+        "الْمُؤْمِنُ الْقَوِيُّ خَيْرٌ وَأَحَبُّ إِلَى اللَّهِ مِنَ الْمُؤْمِنِ الضَّعِيفِ، وَفِي كُلٍّ خَيْرٌ" to "Al-mu'minul-qawiyyu khayrun wa ahabbu ilallahi minal-mu'minid-daʿif, wa fi kullin khayr",
+        "عَجَبًا لِأَمْرِ الْمُؤْمِنِ، إِنَّ أَمْرَهُ كُلَّهُ خَيْرٌ" to "ʿAjaban li-amril-mu'min, inna amrahu kullahu khayr",
+        "لَا تَحْقِرَنَّ مِنَ الْمَعْرُوفِ شَيْئًا، وَلَوْ أَنْ تَلْقَى أَخَاكَ بِوَجْهٍ طَلْقٍ" to "La tahqiranna minal-maʿrufi shay'an, wa law an talqa akhaka bi-wajhin talq",
+    )
+
     private fun q(title: T, ar: String, tr: String, m: T, src: String) = DailyItem(true, title, ar, tr, m, src)
     private fun h(ar: String, m: T, src: String) =
-        DailyItem(false, T("Hadith", "Hadis", "Hadith"), ar, null, m, src)
+        DailyItem(false, T("Hadith", "Hadis", "Hadith"), ar, HADITH_TR[ar], m, src)
 
     val quran: List<DailyItem> = listOf(
         q(

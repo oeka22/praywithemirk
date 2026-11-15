@@ -63,6 +63,7 @@ class AdhanActivity : Activity() {
     companion object {
         const val EXTRA_PRAYER = "prayer"
         const val ACTION_FINISHED = "com.praywithemirk.app.action.ADHAN_FINISHED"
+        const val BELL_MS = 10_000L
     }
 
     private lateinit var prefs: Prefs
@@ -125,7 +126,10 @@ class AdhanActivity : Activity() {
         }, lp(top = dp(12)))
 
         setContentView(root)
-        bell.start(10_000L)
+        bell.start(BELL_MS)
+        // Nach 10 Sekunden schließt die Glockenanzeige; der Gebetsruf läuft weiter bis zum Ende
+        // (Stopp über Startseite, Benachrichtigung oder 3× Klatschen).
+        handler.postDelayed({ if (!isFinishing) finish() }, BELL_MS)
 
         val filter = IntentFilter(ACTION_FINISHED)
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(finishedReceiver, filter, Context.RECEIVER_NOT_EXPORTED)

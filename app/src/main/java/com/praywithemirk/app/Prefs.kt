@@ -112,6 +112,21 @@ class Prefs(context: Context) {
     var lang: Lang
         get() = Lang.byId(sp.getString("lang", Lang.DE.id))
         set(v) = sp.edit().putString("lang", v.id).apply()
+    /** Nachtmodus: 0 = aus, 1 = nach Uhrzeit, 2 = Lichtsensor. */
+    var nightMode: Int
+        get() = sp.getInt("night_mode", 0)
+        set(v) = sp.edit().putInt("night_mode", v).apply()
+    var nightFrom: Int
+        get() = sp.getInt("night_from", 22)
+        set(v) = sp.edit().putInt("night_from", v).apply()
+    var nightTo: Int
+        get() = sp.getInt("night_to", 6)
+        set(v) = sp.edit().putInt("night_to", v).apply()
+    /** 0 = sehr dunkel, 1 = dunkel, 2 = gedämpft */
+    var nightLevel: Int
+        get() = sp.getInt("night_level", 1)
+        set(v) = sp.edit().putInt("night_level", v).apply()
+
     /** Arabische Schrift anzeigen (Gebetsnamen, Hadith/Sure, Adhkar, Anleitung). */
     var showArabic: Boolean
         get() = sp.getBoolean("arabic", true)

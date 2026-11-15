@@ -17,7 +17,7 @@ import java.net.URL
 object CustomSources {
 
     class Source(val id: String, val name: String, val url: String, val enabled: Boolean, val count: Int, val fetchedAt: Long)
-    class Item(val arabic: String, val de: String, val tr: String, val en: String, val ref: String)
+    class Item(val arabic: String, val de: String, val tr: String, val en: String, val ref: String, val translit: String = "")
 
     private fun sp(ctx: Context) = ctx.getSharedPreferences("praywithemirk", Context.MODE_PRIVATE)
     private fun dir(ctx: Context) = File(ctx.filesDir, "sources").apply { mkdirs() }
@@ -57,7 +57,7 @@ object CustomSources {
     private fun Item.toDaily(name: String): DailyItem {
         val fallback = de.ifBlank { en.ifBlank { tr } }
         return DailyItem(
-            false, T(name, name, name), arabic, null,
+            false, T(name, name, name), arabic, translit.ifBlank { null },
             T(de.ifBlank { fallback }, tr.ifBlank { fallback }, en.ifBlank { fallback }),
             if (ref.isBlank()) name else "$name · $ref"
         )
@@ -67,13 +67,13 @@ object CustomSources {
         val arr = JSONArray(File(dir(ctx), "$id.json").readText())
         (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
-            Item(o.optString("ar"), o.optString("de"), o.optString("tr"), o.optString("en"), o.optString("ref"))
+            Item(o.optString("ar"), o.optString("de"), o.optString("tr"), o.optString("en"), o.optString("ref"), o.optString("translit"))
         }
     } catch (_: Exception) { emptyList() }
 
     private fun storeItems(ctx: Context, id: String, items: List<Item>) {
         val arr = JSONArray()
-        items.forEach { arr.put(JSONObject().put("ar", it.arabic).put("de", it.de).put("tr", it.tr).put("en", it.en).put("ref", it.ref)) }
+        items.forEach { arr.put(JSONObject().put("ar", it.arabic).put("de", it.de).put("tr", it.tr).put("en", it.en).put("ref", it.ref).put("translit", it.translit)) }
         File(dir(ctx), "$id.json").writeText(arr.toString())
     }
 
@@ -191,7 +191,8 @@ object CustomSources {
                         e.pick("de", "german", "deutsch", "text_de").ifBlank { gen },
                         e.pick("tr", "turkish", "turkce", "text_tr"),
                         e.pick("en", "english", "text_en"),
-                        e.pick("source", "ref", "reference", "quelle", "kaynak", "book")
+                        e.pick("source", "ref", "reference", "quelle", "kaynak", "book"),
+                        e.pick("translit", "transliteration", "umschrift", "okunus", "latin")
                     )
                 }
                 else -> null

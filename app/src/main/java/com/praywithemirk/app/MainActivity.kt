@@ -59,6 +59,11 @@ class MainActivity : Activity() {
     private var segBar: SegmentBar? = null
     private var atLabel: TextView? = null
     private var lineMode = false
+    // Nachtmodus und laufender Gebetsruf (Stopp-Leiste, Klatschen)
+    private lateinit var dimmer: Dimmer
+    private var adhanBar: View? = null
+    private var adhanClapInfo: TextView? = null
+    private var clap: ClapDetector? = null
 
     private var builtKey: String = ""
     private var wide = false
@@ -79,6 +84,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
+        dimmer = Dimmer(this)
         Notifications.ensureChannels(this)
         buildUi()
         askInitialPermissions()
@@ -94,6 +100,7 @@ class MainActivity : Activity() {
         if (prefs.autoLocation && prefs.hasLocation && LocationHelper.hasPermission(this)) autoLocate()
         CustomSources.refreshStale(this)
         if (prefs.useMosque) MosqueCalendar.refreshIfStale(this)
+        dimmer.start(prefs)
         handler.removeCallbacks(tick)
         handler.post(tick)
     }
@@ -101,6 +108,9 @@ class MainActivity : Activity() {
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(tick)
+        clap?.stop(); clap = null
+        dimmer.stop()
+        dimmer.reset()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -109,7 +119,7 @@ class MainActivity : Activity() {
         refreshAll()
     }
 
-    private fun uiKey() = "${prefs.lang.id}|${prefs.theme.id}|${prefs.style.id}|${prefs.skin}|${resources.configuration.screenWidthDp}|${prefs.ringBig}|${prefs.headerClock}|${prefs.clockSize}|${prefs.mainScale}|${prefs.showArabic}|${resources.configuration.screenHeightDp}"
+    private fun uiKey() = "${prefs.lang.id}|${prefs.theme.id}|${prefs.style.id}|${prefs.skin}|${resources.configuration.screenWidthDp}|${prefs.mainScale}|${prefs.showArabic}|${resources.configuration.screenHeightDp}"
 
     // ---------------------------------------------------------------- Aufbau
 
@@ -231,11 +241,10 @@ class MainActivity : Activity() {
         header.addView(placeView, LinearLayout.LayoutParams(0, -2, 1f))
 
         val clockSizes = if (wide) floatArrayOf(40f, 56f, 76f) else floatArrayOf(24f, 30f, 38f)
-        clockView = text("", clockSizes[prefs.clockSize.coerceIn(0, 2)] * fs.coerceAtMost(1.3f), C.cream, Fonts.medium, Gravity.END).apply {
+        clockView = text("", clockSizes[1] * fs.coerceAtMost(1.3f), C.cream, Fonts.medium, Gravity.END).apply {
             includeFontPadding = false
             fontFeatureSettings = "tnum"
             maxLines = 1
-            visibility = if (prefs.headerClock) View.VISIBLE else View.GONE
         }
         header.addView(clockView, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(6) })
         right.addView(header, lp(top = dp(6)))
@@ -288,6 +297,7 @@ class MainActivity : Activity() {
         actions.addView(settingsTile, LinearLayout.LayoutParams(0, -1, 1f).apply { leftMargin = dp(10) })
         col.addView(actions, lp(top = dp(14)))
 
+        attachOverlays(root)
         setContentView(root)
     }
 
@@ -448,6 +458,7 @@ class MainActivity : Activity() {
                 col.addView(r, lp(top = if (rr == 0) dp(14f * k) else gap))
             }
         }
+        attachOverlays(root)
         setContentView(root)
     }
 
@@ -519,6 +530,52 @@ class MainActivity : Activity() {
         if (item.arabic.isNotBlank() && prefs.showArabic) impulseBox.addView(arabic(item.arabic, (if (wide) 30f else 18f) * s), lp(top = dp(8f * s)))
         if (prefs.showTranslit && item.translit != null) impulseBox.addView(text(item.translit, (if (wide) 17f else 12f) * s, C.teal, Fonts.italic), lp(top = dp(6f * s)))
         impulseBox.addView(text("— " + item.source, (if (wide) 16f else 11f) * s, C.muted, Fonts.medium, Gravity.END), lp(top = dp(6f * s)))
+    }
+
+    // ---------------------------------------------------------------- Gebetsruf-Leiste & Nachtmodus
+
+    /** Stopp-Leiste (während der Gebetsruf läuft) und dunkler Schleier für den Nachtmodus. */
+    private fun attachOverlays(root: FrameLayout) {
+        val l = prefs.lang
+        val bar = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            visibility = View.GONE
+            background = roundRect(C.bgTop, dp(22).toFloat(), C.gold, dp(1))
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+            elevation = dp(8).toFloat()
+        }
+        bar.addView(text("🔔  " + S.adhanPlaying[l], 15f, C.cream, Fonts.medium, Gravity.CENTER))
+        bar.addView(pill("■  " + S.stopAdhan[l], filled = true) { AdhanService.stop(this) }.apply {
+            textSize = 17f
+            setPadding(dp(28), dp(12), dp(28), dp(12))
+        }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(8) })
+        val info = text("", 13f, C.muted, Fonts.light, Gravity.CENTER)
+        bar.addView(info, lp(top = dp(6)))
+        root.addView(bar, FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = dp(28) })
+        adhanBar = bar; adhanClapInfo = info
+
+        val veil = View(this).apply { setBackgroundColor(Color.BLACK); alpha = 0f; isClickable = false; isFocusable = false }
+        root.addView(veil, FrameLayout.LayoutParams(-1, -1))
+        dimmer.overlay = veil
+    }
+
+    /** Zeigt die Stopp-Leiste, solange der Gebetsruf läuft, und hört dann (falls erlaubt) auf 3× Klatschen. */
+    private fun updateAdhanBar() {
+        val l = prefs.lang
+        val playing = AdhanService.playing
+        adhanBar?.visibility = if (playing) View.VISIBLE else View.GONE
+        val micOk = prefs.clapToStop && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (playing && micOk && clap == null) {
+            adhanClapInfo?.text = S.clapHint[l]
+            clap = ClapDetector(
+                onClap = { n -> adhanClapInfo?.text = S.clapHint[l] + "   " + "●".repeat(n) + "○".repeat(3 - n) },
+                onTriple = { AdhanService.stop(this) }
+            ).also { it.start() }
+        } else if (!playing && clap != null) {
+            clap?.stop(); clap = null
+        }
+        if (!micOk) adhanClapInfo?.text = ""
     }
 
     // ---------------------------------------------------------------- Aktualisieren
@@ -708,6 +765,8 @@ class MainActivity : Activity() {
 
     private fun onTick() {
         val now = ZonedDateTime.now(ZoneId.systemDefault())
+        updateAdhanBar()
+        dimmer.update(prefs, now.toLocalTime(), forceBright = AdhanService.playing)
         val next = nextEvent
         val prev = prevEvent
         if (next == null || prev == null || !now.isBefore(next.time)) {
@@ -729,10 +788,10 @@ class MainActivity : Activity() {
             bigValue.text = cd
             smallValue.text = prayerTime
             atLabel?.text = S.atLabel[l].format(S.prayerNames[next.prayer][l]).uppercase()
-        } else when (prefs.ringBig) {
-            1 -> { bigValue.text = prayerTime; smallValue.text = "−$cd" }
-            2 -> { bigValue.text = hm; smallValue.text = "$prayerTime · −$cd" }
-            else -> { bigValue.text = cd; smallValue.text = S.at[l].format(prayerTime) }
+        } else {
+            // groß: Countdown, darunter die Gebetszeit
+            bigValue.text = cd
+            smallValue.text = S.at[l].format(prayerTime)
         }
 
         val total = Duration.between(prev.time, next.time).seconds.coerceAtLeast(1)

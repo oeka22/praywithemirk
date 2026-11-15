@@ -7,8 +7,7 @@ zur Gebetszeit, Sunnah-Adhkar zu jedem Gebet und zweimal täglich einem Hadith b
 - **Hauptbildschirm**: Ort, Datum (gregorianisch + Hijri) und Uhrzeit in einer Kopfzeile; darunter links der
   Ring mit nächstem Gebet, großer Gebetszeit und Countdown, rechts daneben der Tagesimpuls (Hadith/Sure).
   Darunter alle Tageszeiten mit Glocke je Gebet. Auf Tablets/im Querformat als Kacheln nebeneinander.
-- **Kreis-Anzeige einstellbar** (Einstellungen › Anzeige): großer Wert = Countdown (Standard), Gebetszeit
-  oder aktuelle Uhrzeit; Uhr oben an/aus, Größe klein/mittel/groß.
+- **Schriftgröße der Startseite** (Normal/Groß/Sehr groß) auf der Design-Seite.
 - **Qibla-Kompass**: zeigt mit Kaaba-Symbol Richtung Mekka (inkl. Missweisung), vibriert bei korrekter
   Ausrichtung, Hinweis zur Kalibrierung.
 - **Gebetsanleitung für Anfänger**: Aufbau jedes Gebets (Rakʿa Sunnah/Fard/Witr), Gebetswaschung Schritt für
@@ -23,8 +22,11 @@ zur Gebetszeit, Sunnah-Adhkar zu jedem Gebet und zweimal täglich einem Hadith b
   - **Klassisch** mit Ring: 5 Farben – Nacht (Standard), Mitternacht, Abenddämmerung, Sandstein (hell), Minze (hell) – und 4 Stile.
   - **Fanus** („Laternenlicht“) und **Mashrabiya** („Gitterfenster“), je in Morgenlicht (hell), Abendgold (mittel), Laternennacht (dunkel): eine Zeile Uhr | Timer | Gebetszeit, leuchtende Quadrat-Leiste, orientalische Sterne, Laternen und Gitter.
   - Typografie pur, Mondnacht, Andalus, Kaminabend, Andalus bei Nacht.
+- **Gebetsruf**: Die Glocke wird 10 Sekunden gezeigt, danach geht es zurück zur Startseite; der Gebetsruf läuft bis zum Ende weiter.
+  Stoppen jederzeit über die Leiste „Gebetsruf stoppen“ auf der Startseite, die Benachrichtigung oder 3× Klatschen.
+- **Nachtmodus** (Einstellungen): Startseite nachts stark abdunkeln – nach Uhrzeit oder per Lichtsensor, in drei Stufen.
 - Timer passt sich bei Stunden (H:MM:SS) automatisch dem Platz an.
-- **Arabische Schrift** und **Umschrift** in den Einstellungen getrennt ein-/ausschaltbar.
+- **Arabische Schrift** und **Umschrift** in den Einstellungen getrennt ein-/ausschaltbar (Umschrift jetzt auch für alle Hadithe; eigene Quellen mit Feld „translit“).
 - **Gebetsruf**: läuft als Vordergrund-Dienst auch bei gesperrtem Bildschirm, mit „Stopp“-Knopf
   in der Benachrichtigung. Standard-Gebetsruf plus individuell je Gebet: Datei vom Handy oder direkter
   https-Audio-Link (wird einmal heruntergeladen, danach offline). Im Link-Dialog gibt es Vorschläge frei

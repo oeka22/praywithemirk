@@ -97,18 +97,6 @@ class SettingsActivity : Activity() {
             addView(stepper(S.hijriOffset[l], prefs.hijriOffset, -2, 2, 1) { prefs.hijriOffset = it }, lp(top = dp(6)))
         }, lp(top = dp(8)))
 
-        // ---------------- Anzeige
-        section(S.display[l])
-        col.addView(card().apply {
-            addView(label(S.ringBig[l]))
-            addView(radio(S.ringOptions.map { it[l] }, prefs.ringBig) { prefs.ringBig = it; render() })
-            addView(switchRow(S.headerClock[l], prefs.headerClock) { prefs.headerClock = it }, lp(top = dp(10)))
-            addView(label(S.mainScale[l]), lp(top = dp(10)))
-            addView(segmented(S.mainScales.map { it[l] }, prefs.mainScale) { prefs.mainScale = it; render() }, lp(top = dp(6)))
-            addView(label(S.clockSize[l]), lp(top = dp(10)))
-            addView(segmented(S.sizes.map { it[l] }, prefs.clockSize) { prefs.clockSize = it; render() }, lp(top = dp(6)))
-        }, lp(top = dp(8)))
-
         // ---------------- Design
         section(S.design[l])
         col.addView(card(14).apply {
@@ -120,21 +108,6 @@ class SettingsActivity : Activity() {
                 setPadding(dp(12), dp(12), dp(12), dp(12))
                 setOnClickListener { startActivity(Intent(this@SettingsActivity, DesignActivity::class.java)) }
             }, lp(top = dp(10)))
-        }, lp(top = dp(8)))
-        col.addView(card(14).apply {
-            addView(label(S.classicDesign[l] + " – " + S.colors[l] + " & " + S.styleLabel[l]), lp(bottom = dp(8)))
-            val grid = LinearLayout(this@SettingsActivity).apply { orientation = LinearLayout.HORIZONTAL }
-            AppTheme.entries.forEachIndexed { idx, t -> grid.addView(themeTile(t), LinearLayout.LayoutParams(0, -2, 1f).apply { if (idx > 0) leftMargin = dp(8) }) }
-            addView(grid)
-            addView(text(prefs.theme.title[l], 14f, C.gold, Fonts.medium, Gravity.CENTER), lp(top = dp(10)))
-            addView(label(S.styleLabel[l]), lp(top = dp(14)))
-            val st = AppStyle.entries
-            for (rowIdx in 0..1) {
-                addView(segmented(st.subList(rowIdx * 2, rowIdx * 2 + 2).map { it.title[l] },
-                    st.indexOf(prefs.style) - rowIdx * 2) { idx ->
-                    prefs.style = st[rowIdx * 2 + idx]; prefs.skin = "classic"; recreate()
-                }, lp(top = dp(6)))
-            }
         }, lp(top = dp(8)))
 
         // ---------------- Standort
@@ -371,6 +344,23 @@ class SettingsActivity : Activity() {
         }, lp(top = dp(8)))
 
         // ---------------- Berechtigungen
+        // ---------------- Nachtmodus
+        section(S.nightSection[l])
+        col.addView(card().apply {
+            addView(text(S.nightInfo[l], 13f, C.muted, Fonts.light))
+            val hasSensor = Dimmer.hasLightSensor(this@SettingsActivity)
+            addView(segmented(S.nightModes.map { it[l] }, prefs.nightMode) { prefs.nightMode = it; render() }, lp(top = dp(12)))
+            if (prefs.nightMode == 2 && !hasSensor) addView(text(S.noLightSensor[l], 13f, C.gold, Fonts.regular), lp(top = dp(8)))
+            if (prefs.nightMode == 1 || (prefs.nightMode == 2 && !hasSensor)) {
+                addView(stepper(S.nightFrom[l], prefs.nightFrom, 0, 23, 1) { prefs.nightFrom = it }, lp(top = dp(8)))
+                addView(stepper(S.nightTo[l], prefs.nightTo, 0, 23, 1) { prefs.nightTo = it })
+            }
+            if (prefs.nightMode != 0) {
+                addView(label(S.nightLevel[l]), lp(top = dp(10)))
+                addView(segmented(S.nightLevels.map { it[l] }, prefs.nightLevel) { prefs.nightLevel = it; render() }, lp(top = dp(6)))
+            }
+        }, lp(top = dp(8)))
+
         section(S.permissions[l])
         col.addView(card().apply {
             if (Build.VERSION.SDK_INT >= 31) {
@@ -470,52 +460,6 @@ class SettingsActivity : Activity() {
     }
 
     /** Vorschau-Kachel für ein Design. */
-    private fun themeTile(t: AppTheme): View {
-        val sel = t == prefs.theme
-        val p = t.p
-        val tile = object : View(this) {
-            private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-            override fun onDraw(c: android.graphics.Canvas) {
-                val w = width.toFloat(); val h = height.toFloat()
-                val r = dp(14).toFloat()
-                paint.shader = android.graphics.LinearGradient(0f, 0f, w * 0.3f, h,
-                    Color.parseColor(p.bgTop), Color.parseColor(p.bgBottom), android.graphics.Shader.TileMode.CLAMP)
-                c.drawRoundRect(0f, 0f, w, h, r, r, paint)
-                paint.shader = null
-                // kleiner Ring + Textzeilen als Miniatur
-                paint.style = android.graphics.Paint.Style.STROKE
-                paint.strokeWidth = dp(2).toFloat()
-                paint.color = Color.parseColor(p.accent)
-                c.drawCircle(w * 0.32f, h * 0.42f, w * 0.18f, paint)
-                paint.style = android.graphics.Paint.Style.FILL
-                paint.color = Color.parseColor(p.text)
-                c.drawRoundRect(w * 0.58f, h * 0.30f, w * 0.86f, h * 0.36f, 4f, 4f, paint)
-                paint.color = Color.parseColor(p.muted)
-                c.drawRoundRect(w * 0.58f, h * 0.44f, w * 0.80f, h * 0.49f, 4f, 4f, paint)
-                paint.color = Color.parseColor(p.card)
-                c.drawRoundRect(w * 0.12f, h * 0.72f, w * 0.88f, h * 0.86f, 6f, 6f, paint)
-                if (sel) {
-                    paint.style = android.graphics.Paint.Style.STROKE
-                    paint.strokeWidth = dp(2.5f).toFloat()
-                    paint.color = C.gold
-                    c.drawRoundRect(2f, 2f, w - 2f, h - 2f, r, r, paint)
-                    paint.style = android.graphics.Paint.Style.FILL
-                }
-            }
-        }
-        tile.contentDescription = t.title[prefs.lang]
-        tile.setOnClickListener {
-            if (t != prefs.theme || prefs.skin != "classic") {
-                prefs.theme = t
-                prefs.skin = "classic"
-                recreate()
-            }
-        }
-        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        box.addView(tile, LinearLayout.LayoutParams(-1, dp(64)))
-        return box
-    }
-
     // ---------------------------------------------------------------- Bausteine
 
     private fun section(title: String) {
